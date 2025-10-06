@@ -1,21 +1,29 @@
-// import { createDonation } from '../controllers/donationController.js';
-// import express from 'express';
-// import { getDonations } from '../controllers/donationController.js';
-
-// const router = express.Router();
-
-// router.post('/', createDonation);
-// router.get('/', getDonations);
-
-// export default router;
-
-
+// routes/donationRoutes.js
+import authMiddleware from "../Middlewares/authMiddleware.js";
 import express from 'express';
-import { createDonation, getDonations } from '../controllers/donationController.js';
+import Donation from "../models/DonationModel.js";
+
+import {
+  createDonation,
+  getDonations,
+  claimDonation,
+  getDonationsByDonor,
+  completeDonation,
+  getAvailableDonations,
+  getVolunteerDonations
+} from "../controllers/donationController.js";
 
 const router = express.Router();
 
-router.post('/', createDonation);
-router.get('/', getDonations);
+
+router.post('/', authMiddleware, createDonation);
+router.get('/', authMiddleware, getDonations);
+router.get('/my-donations', authMiddleware, getDonationsByDonor);
+router.put('/:id/claim', authMiddleware, claimDonation);
+router.put('/:id/complete', authMiddleware, completeDonation);
+router.get("/available", authMiddleware, getAvailableDonations);
+
+// Get donations claimed by logged-in volunteer
+router.get("/volunteer", authMiddleware, getVolunteerDonations);
 
 export default router;

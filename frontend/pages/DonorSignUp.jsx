@@ -10,7 +10,7 @@ export default function VolunteerSignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const data = { name, email, password };
+    const data = { name, email, password ,role:"donor"};
 
     try {
       const res = await axios.post("http://localhost:5000/api/auth/signup", data);

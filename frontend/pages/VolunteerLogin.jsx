@@ -22,15 +22,19 @@ export default function VolunteerLogin() {
       );
       console.log("Volunteer logged in:", res.data);
 
-      const { token } = res.data;
+      const { token} = res.data;
       localStorage.setItem("token", token);
+
 
       const decoded = jwtDecode(token);
       localStorage.setItem("volunteerId", decoded.id);
       localStorage.setItem("volunteerName", decoded.name);
       localStorage.setItem("volunteerEmail", decoded.email);
 
+      localStorage.setItem("token", token);
+
       navigate("/volunteer/dashboard");
+
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Login failed");
