@@ -23,7 +23,7 @@ const donationSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['available', 'claimed', 'completed'],
+    enum: ['available', 'claimed', 'delivered', 'completed'],
     default: 'available',
   },
   claimedBy: {
@@ -43,7 +43,7 @@ const donationSchema = new mongoose.Schema({
  * @property {string} phoneNo - Contact phone number (10 digits)
  * @property {string} location - Pickup location
  * @property {string} imageUrl - Optional image URL
- * @property {string} status - Current status (available, claimed, completed)
+ * @property {string} status - Current status (available, claimed, delivered, completed)
  * @property {ObjectId} claimedBy - Reference to volunteer who claimed the donation
  */
 const Donation = mongoose.model('Donation', donationSchema);

@@ -10,16 +10,21 @@ import {
   getDonationsByDonor,
   completeDonation,
   getAvailableDonations,
-  getVolunteerDonations
+  getVolunteerDonations,
+  markAsDelivered
 } from "../controllers/donationController.js";
 
 const router = express.Router();
 
 
+// Donation CRUD routes
 router.post('/', authMiddleware, createDonation);
 router.get('/', authMiddleware, getDonations);
 router.get('/my-donations', authMiddleware, getDonationsByDonor);
+
+// Volunteer routes
 router.put('/:id/claim', authMiddleware, claimDonation);
+router.put('/:id/deliver', authMiddleware, markAsDelivered); // New route for marking as delivered
 router.put('/:id/complete', authMiddleware, completeDonation);
 router.get("/available", authMiddleware, getAvailableDonations);
 

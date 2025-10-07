@@ -1,16 +1,127 @@
 @import "tailwindcss";
-body{
-  background-color: black;
-  color: white;
+
+@theme {
+  /* Custom Colors */
+  --color-saffron-50: #FFF4E6;
+  --color-saffron-100: #FFE4CC;
+  --color-saffron-200: #FFC999;
+  --color-saffron-300: #FFAE66;
+  --color-saffron-400: #FFB366;
+  --color-saffron-500: #FF9933;
+  --color-saffron-600: #E68A2E;
+  --color-saffron-700: #CC7A29;
+  --color-saffron-800: #B36B24;
+  --color-saffron-900: #995C1F;
+
+  --color-cream-50: #FFFCF5;
+  --color-cream-100: #FFF8E7;
+  --color-cream-200: #FFF0CC;
+  --color-cream-300: #FFE8B3;
+  --color-cream-400: #FFE099;
+  --color-cream-500: #FFD880;
+
+  --color-warmGreen-50: #E8F5E9;
+  --color-warmGreen-100: #C8E6C9;
+  --color-warmGreen-200: #A5D6A7;
+  --color-warmGreen-300: #81C784;
+  --color-warmGreen-400: #66BB6A;
+  --color-warmGreen-500: #4CAF50;
+  --color-warmGreen-600: #43A047;
+  --color-warmGreen-700: #388E3C;
+
+  /* Font Family */
+  --font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
+  --font-display: 'Poppins', sans-serif;
+  --font-body: 'Nunito Sans', sans-serif;
+  --font-handwriting: 'Caveat', cursive;
+
+  /* Shadows */
+  --shadow-warm: 0 8px 20px rgba(255, 153, 51, 0.25);
+  --shadow-green: 0 8px 20px rgba(76, 175, 80, 0.25);
 }
 
-.btn{
-  background-color: #ff7043;
-  padding: 8px 16px;
-  margin-top: 40px;
+/* Font Settings */
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FFFFFF;
+  color: #333333;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFF8E7;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FF9933;
   border-radius: 4px;
 }
 
-.input{
-  padding: 4px;
+::-webkit-scrollbar-thumb:hover {
+  background: #E68A2E;
+}
+
+/* Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Text Selection */
+::selection {
+  background-color: #FF9933;
+  color: white;
+}
+
+::-moz-selection {
+  background-color: #FF9933;
+  color: white;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Legacy Button Styles (for compatibility) */
+.btn {
+  background: linear-gradient(135deg, #FF9933 0%, #FF6F00 100%);
+  color: white;
+  padding: 12px 24px;
+  margin-top: 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(255, 153, 51, 0.25);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(255, 153, 51, 0.35);
+}
+
+.input {
+  padding: 12px 16px;
+  border: 2px solid #E5E7EB;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #FF9933;
+  box-shadow: 0 0 0 3px rgba(255, 153, 51, 0.1);
 }

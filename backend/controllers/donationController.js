@@ -42,8 +42,8 @@ export const createDonation = async (req, res) => {
 export const getDonations = async (req, res) => {
   try {
     const donations = await Donation.find()
-      .populate('donorId', 'name email')
-      .populate('claimedBy', 'name email');
+  .populate('donorId', 'name email profileImage')
+      .populate('claimedBy', 'name email profileImage');
     res.status(200).json(donations);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching donations', error: error.message });
@@ -57,9 +57,9 @@ export const getDonationsByDonor = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
-    const donations = await Donation.find({ donorId: req.user.id })
-      .populate("claimedBy", "name email")
-      .populate("donorId", "name email phone");
+const donations = await Donation.find({ donorId: req.user.id })
+      .populate("claimedBy", "name email profileImage")
+      .populate("donorId", "name email phone profileImage");
     
     res.status(200).json(donations);
   } catch (error) {
@@ -75,8 +75,8 @@ export const claimDonation = async (req, res) => {
       return res.status(400).json({ message: 'Invalid request parameters.' });
     }
 
-    const donation = await Donation.findById(req.params.id)
-    .populate("claimedBy", "name email");
+const donation = await Donation.findById(req.params.id)
+    .populate("claimedBy", "name email profileImage");
 
     if (!donation) {
       return res.status(404).json({ message: 'Donation not found.' });
@@ -90,14 +90,70 @@ export const claimDonation = async (req, res) => {
     donation.status = 'claimed';
     await donation.save();
 
-    const updatedDonation = await Donation.findById(donation._id)
-      .populate('claimedBy', 'name email') // volunteer details
-      .populate('donorId', 'name email'); // donor details
+const updatedDonation = await Donation.findById(donation._id)
+      .populate('claimedBy', 'name email profileImage') // volunteer details
+      .populate('donorId', 'name email profileImage'); // donor details
 
     // await donation.save();
     res.status(200).json({ message: 'Donation claimed successfully.', donation : updatedDonation  });
   } catch (error) {
     res.status(500).json({ message: 'Error claiming donation', error: error.message });
+  }
+};
+
+/**
+ * Mark donation as delivered by volunteer
+ * Only the volunteer who claimed the donation can mark it as delivered
+ * Updates status from 'claimed' to 'delivered'
+ * @route PUT /api/donations/:id/deliver
+ * @access Protected (Volunteer only)
+ */
+export const markAsDelivered = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized. Please login.' });
+    }
+
+    // Find the donation by ID
+const donation = await Donation.findById(req.params.id)
+      .populate('donorId', 'name email phone profileImage')
+      .populate('claimedBy', 'name email profileImage');
+
+    if (!donation) {
+      return res.status(404).json({ message: 'Donation not found.' });
+    }
+
+    // Verify the donation is in 'claimed' status
+    if (donation.status !== 'claimed') {
+      return res.status(400).json({ 
+        message: `Cannot mark as delivered. Current status: ${donation.status}` 
+      });
+    }
+
+    // Verify that the logged-in volunteer is the one who claimed this donation
+    if (donation.claimedBy._id.toString() !== req.user.id) {
+      return res.status(403).json({ 
+        message: 'You can only mark donations as delivered that you have claimed.' 
+      });
+    }
+
+    // Update status to delivered
+    donation.status = 'delivered';
+    await donation.save();
+
+    console.log(`Donation ${donation._id} marked as delivered by volunteer ${req.user.id}`);
+
+    res.status(200).json({ 
+      message: 'Donation marked as delivered successfully.', 
+      donation 
+    });
+  } catch (error) {
+    console.error('Error marking donation as delivered:', error);
+    res.status(500).json({ 
+      message: 'Error marking donation as delivered', 
+      error: error.message 
+    });
   }
 };
 
@@ -131,9 +187,9 @@ export const getVolunteerDonations = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
-    const donations = await Donation.find({ claimedBy: req.user.id })
-      .populate('donorId', 'name email phone')
-      .populate('claimedBy', 'name email');
+const donations = await Donation.find({ claimedBy: req.user.id })
+      .populate('donorId', 'name email phone profileImage')
+      .populate('claimedBy', 'name email profileImage');
 
     res.status(200).json(donations);
   } catch (err) {
@@ -147,8 +203,8 @@ export const getVolunteerDonations = async (req, res) => {
 // ✅ New controller
 export const getAvailableDonations = async (req, res) => {
   try {
-    const donations = await Donation.find({ status: "available" })
-      .populate("donorId", "name email phone");
+const donations = await Donation.find({ status: "available" })
+      .populate("donorId", "name email phone profileImage");
     console.log('Available donations:', donations);
     res.json(donations);
   } catch (err) {
