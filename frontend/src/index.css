@@ -1,44 +1,6 @@
-@import "tailwindcss";
-
-@theme {
-  /* Custom Colors */
-  --color-saffron-50: #FFF4E6;
-  --color-saffron-100: #FFE4CC;
-  --color-saffron-200: #FFC999;
-  --color-saffron-300: #FFAE66;
-  --color-saffron-400: #FFB366;
-  --color-saffron-500: #FF9933;
-  --color-saffron-600: #E68A2E;
-  --color-saffron-700: #CC7A29;
-  --color-saffron-800: #B36B24;
-  --color-saffron-900: #995C1F;
-
-  --color-cream-50: #FFFCF5;
-  --color-cream-100: #FFF8E7;
-  --color-cream-200: #FFF0CC;
-  --color-cream-300: #FFE8B3;
-  --color-cream-400: #FFE099;
-  --color-cream-500: #FFD880;
-
-  --color-warmGreen-50: #E8F5E9;
-  --color-warmGreen-100: #C8E6C9;
-  --color-warmGreen-200: #A5D6A7;
-  --color-warmGreen-300: #81C784;
-  --color-warmGreen-400: #66BB6A;
-  --color-warmGreen-500: #4CAF50;
-  --color-warmGreen-600: #43A047;
-  --color-warmGreen-700: #388E3C;
-
-  /* Font Family */
-  --font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
-  --font-display: 'Poppins', sans-serif;
-  --font-body: 'Nunito Sans', sans-serif;
-  --font-handwriting: 'Caveat', cursive;
-
-  /* Shadows */
-  --shadow-warm: 0 8px 20px rgba(255, 153, 51, 0.25);
-  --shadow-green: 0 8px 20px rgba(76, 175, 80, 0.25);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Font Settings */
 body {
