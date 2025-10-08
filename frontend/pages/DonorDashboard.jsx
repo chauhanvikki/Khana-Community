@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { motion } from 'framer-motion';
 import { Heart, Package, MapPin, Calendar, User, LogOut, Phone, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import Chat from '../components/Chat';
 import ProfileImageUpload from '../components/ProfileImageUpload';
