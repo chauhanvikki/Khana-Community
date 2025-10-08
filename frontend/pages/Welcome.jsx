@@ -85,7 +85,7 @@ export default function Welcome() {
         setCurrentUser(userRes.data);
 
         // Fetch donations
-        const res = await axios.get("http://localhost:5000/api/donations/my-donations", {
+        const res = await axios.get("https://khana-community.onrender.com/api/donations/my-donations", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setDonations(res.data);

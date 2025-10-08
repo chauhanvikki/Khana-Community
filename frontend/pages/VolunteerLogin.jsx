@@ -17,9 +17,7 @@ export default function VolunteerLogin() {
     e.preventDefault();
     try {
       const res = await axios.post(
-        // "http://localhost:5000/api/auth/volunteer/login",
-        "http://localhost:5000/api/auth/login",
-
+        "https://khana-community.onrender.com/api/auth/login",
         formData
       );
       console.log("Volunteer logged in:", res.data);

@@ -5,7 +5,7 @@ import { User, Package, Calendar, Phone, CheckCircle, Clock, LogOut, Sparkles, M
 import Chat from '../components/Chat';
 import ProfileImageUpload from '../components/ProfileImageUpload';
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://khana-community.onrender.com";
 
 function VolunteerDashboard() {
   const [availableTasks, setAvailableTasks] = useState([]);

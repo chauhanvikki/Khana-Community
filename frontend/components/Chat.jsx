@@ -4,7 +4,7 @@ import { MessageCircle, Send, X, User, Clock, Check, CheckCheck } from 'lucide-r
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://khana-community.onrender.com';
 
 const Chat = ({ isOpen, onClose, recipientId, recipientName, recipientRole, currentUserId, currentUserRole, recipientImage }) => {
   const [messages, setMessages] = useState([]);

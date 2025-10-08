@@ -6,7 +6,7 @@ import { jwtDecode } from "jwt-decode";
 import { motion } from 'framer-motion';
 import { Heart, Mail, Lock, LogIn } from 'lucide-react';
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://khana-community.onrender.com";
 
 export default function DonorLogin() {
   const navigate = useNavigate();

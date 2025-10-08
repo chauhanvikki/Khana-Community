@@ -23,7 +23,7 @@ const DonorDashboard = ({ donorId, onLogout }) => {
       const dataToSend = { ...formData, donorId };
       console.log("Submitting data:", dataToSend);
 
-      const response = await axios.post('http://localhost:5000/api/donations', dataToSend);
+      const response = await axios.post('https://khana-community.onrender.com/api/donations', dataToSend);
 
       alert('Donation submitted successfully!');
       setFormData({ foodName: '', quantity: '', location: '', expiryDate: '' });

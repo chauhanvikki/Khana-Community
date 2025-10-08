@@ -30,7 +30,7 @@ const [selectedVolunteer, setSelectedVolunteer] = useState(null); // { id, name,
   // Fetch current user profile
   const fetchUserProfile = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/auth/me', {
+      const res = await axios.get('https://khana-community.onrender.com/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 10000
       });
@@ -46,7 +46,7 @@ const [selectedVolunteer, setSelectedVolunteer] = useState(null); // { id, name,
 
   const fetchMyDonations = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/donations/my-donations', {
+      const res = await axios.get('https://khana-community.onrender.com/api/donations/my-donations', {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 10000
       });
@@ -91,7 +91,7 @@ const handleSubmit = async (e) => {
 
   try {
     // Backend will get donorId from JWT token
-    await axios.post('http://localhost:5000/api/donations', formData, {
+    await axios.post('https://khana-community.onrender.com/api/donations', formData, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
