@@ -1,13 +1,13 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import AccessAccount from '../pages/AccessAccount.jsx';
-import DonorLogin from '../pages/DonorLogin.jsx';
-import DonorSignUp from '../pages/DonorSignUp.jsx';
-import Dashboard from '../pages/DonorDashboard.jsx';
-import Welcome from '../pages/Welcome.jsx';
-import VolunteerLogin from '../pages/VolunteerLogin.jsx';
-import VolunteerSignUp from '../pages/VolunteerSignUp.jsx';
-import VolunteerDashboard from '../pages/VolunteerDashboard.jsx';
+import AccessAccount from './pages/AccessAccount.jsx';
+import DonorLogin from './pages/DonorLogin.jsx';
+import DonorSignUp from './pages/DonorSignUp.jsx';
+import Dashboard from './pages/DonorDashboard.jsx';
+import Welcome from './pages/Welcome.jsx';
+import VolunteerLogin from './pages/VolunteerLogin.jsx';
+import VolunteerSignUp from './pages/VolunteerSignUp.jsx';
+import VolunteerDashboard from './pages/VolunteerDashboard.jsx';
 
 function App() {
   return (
