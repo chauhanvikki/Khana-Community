@@ -127,6 +127,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, Users, Package, ArrowRight, Sparkles } from 'lucide-react';
+import Contact from '../components/Contact';
+import Footer from '../components/Footer';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -208,10 +210,11 @@ export default function LandingPage() {
         </div>
       </main>
 
+      {/* Contact Section */}
+      <Contact />
+      
       {/* Footer */}
-      <footer style={{ background: 'white', borderTop: '1px solid #E5E7EB', padding: '2rem', textAlign: 'center', marginTop: '5rem' }}>
-        <p style={{ color: '#666', fontSize: '0.95rem' }}>© {new Date().getFullYear()} Khana Community — Serving with Love 🙏</p>
-      </footer>
+      <Footer />
 
       <style>{`
         @keyframes float {

@@ -14,6 +14,7 @@ import donationRoutes from "./routes/donationRoutes.js";
 import volunteerAuthRoutes from "./routes/volunteerAuth.js";
 import messageRoutes from "./routes/messages.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -138,6 +139,7 @@ app.use("/api/donations", donationRoutes);
 app.use("/api/auth/volunteer", volunteerAuthRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Health check route
 app.get("/", (req, res) => {
