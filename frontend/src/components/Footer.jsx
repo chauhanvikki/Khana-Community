@@ -6,9 +6,9 @@ const Footer = () => {
   const socialLinks = [
     { icon: Facebook, href: '#', label: 'Facebook' },
     { icon: Twitter, href: '#', label: 'Twitter' },
-    { icon: Instagram, href: '#', label: 'Instagram' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn' },
-    { icon: Github, href: '#', label: 'GitHub' }
+    { icon: Instagram, href: 'https://www.instagram.com/chauhan_vikki__/', label: 'Instagram' },
+    { icon: Linkedin, href: 'https://www.linkedin.com/in/vishvendra-singh-/', label: 'LinkedIn' },
+    { icon: Github, href: 'https://github.com/chauhanvikki/', label: 'GitHub' }
   ];
 
   const quickLinks = [
@@ -46,6 +46,8 @@ const Footer = () => {
                 <motion.a
                   key={social.label}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   whileHover={{ scale: 1.1, y: -2 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-10 h-10 bg-gray-700 hover:bg-gradient-to-r hover:from-orange-500 hover:to-orange-600 rounded-full flex items-center justify-center transition-all duration-300"
