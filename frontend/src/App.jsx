@@ -1,43 +1,29 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import AccessAccount from '../pages/AccessAccount.jsx';
+import DonorLogin from '../pages/DonorLogin.jsx';
+import DonorSignUp from '../pages/DonorSignUp.jsx';
+import Dashboard from '../pages/DonorDashboard.jsx';
+import Welcome from '../pages/Welcome.jsx';
+import VolunteerLogin from '../pages/VolunteerLogin.jsx';
+import VolunteerSignUp from '../pages/VolunteerSignUp.jsx';
+import VolunteerDashboard from '../pages/VolunteerDashboard.jsx';
 
-// DonorDashboard.jsx
-import React, { useState } from 'react';
-import axios from 'axios';
-
-const DonorDashboard = ({ donorId, onLogout }) => {
-  const [formData, setFormData] = useState({
-    foodName: '',
-    quantity: '',
-    location: '',
-    expiryDate: '',
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      const dataToSend = { ...formData, donorId };
-      console.log("Submitting data:", dataToSend);
-
-      const response = await axios.post('https://khana-community.onrender.com/api/donations', dataToSend);
-
-      alert('Donation submitted successfully!');
-      setFormData({ foodName: '', quantity: '', location: '', expiryDate: '' });
-    } catch (error) {
-      console.error("Error submitting donation:", error.response?.data || error.message);
-      alert('Submission failed. Please check the form and try again.');
-    }
-  };
-
+function App() {
   return (
-    <div>
-      hello
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AccessAccount />} />
+        <Route path="/auth/login" element={<DonorLogin />} />
+        <Route path="/auth/signUp" element={<DonorSignUp />} />
+        <Route path="/auth/dashboard" element={<Dashboard />} />
+        <Route path="/auth/welcome" element={<Welcome />} />
+        <Route path="/volunteer/login" element={<VolunteerLogin />} />
+        <Route path="/volunteer/signup" element={<VolunteerSignUp />} />
+        <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
-};
+}
 
-export default DonorDashboard;
+export default App;

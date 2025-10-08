@@ -79,7 +79,7 @@ export default function Welcome() {
         const token = localStorage.getItem("token");
         
         // Fetch user profile
-        const userRes = await axios.get("http://localhost:5000/api/auth/me", {
+        const userRes = await axios.get("https://khana-community.onrender.com/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCurrentUser(userRes.data);
