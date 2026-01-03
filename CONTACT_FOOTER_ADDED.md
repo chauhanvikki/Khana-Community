@@ -69,7 +69,7 @@ git push origin main
 - ✅ Contact information
 - ✅ Quick navigation
 - ✅ Copyright with current year
-- ✅ "Made with ❤️ by Vishvendra Singh"
+- ✅ "Made with ❤️ by Vishvendra Singh chauhan"
 - ✅ Scroll to top button
 
 ### **Animations:**
