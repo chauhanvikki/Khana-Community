@@ -129,6 +129,8 @@ import { motion } from 'framer-motion';
 import { Heart, Users, Package, ArrowRight, Sparkles } from 'lucide-react';
 import Contact from '../components/Contact';
 import Footer from '../components/Footer';
+import { API_BASE_URL } from '../config';
+import axios from 'axios';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -138,6 +140,20 @@ export default function LandingPage() {
     { icon: Users, title: '500+ Volunteers', desc: 'Active community helping daily' },
     { icon: Package, title: '10,000+ Meals', desc: 'Delivered to those in need' }
   ];
+
+  const [leaderboard, setLeaderboard] = React.useState([]);
+
+  React.useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/donations/leaderboard`);
+        setLeaderboard(res.data);
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+      }
+    };
+    fetchLeaderboard();
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #FFF8E7 0%, #FFFFFF 50%, #FFE0B2 100%)', position: 'relative', overflow: 'hidden' }}>
@@ -208,6 +224,81 @@ export default function LandingPage() {
             );
           })}
         </div>
+
+        {/* Leaderboard Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          style={{ marginTop: '8rem', textAlign: 'center' }}
+        >
+          <h2 style={{ fontSize: '3rem', fontWeight: '800', marginBottom: '3rem' }}>
+            Our <span style={{ background: 'linear-gradient(135deg, #FF9933, #FF6F00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Top Donors</span> 🏆
+          </h2>
+
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '2rem', flexWrap: 'wrap', padding: '2rem' }}>
+            {leaderboard.length > 0 ? (
+              leaderboard.slice(0, 3).map((donor, i) => {
+                // Rank order for visual: 2nd, 1st, 3rd
+                const order = [1, 0, 2];
+                const displayDonor = leaderboard[order[i]];
+                if (!displayDonor) return null;
+                
+                const height = order[i] === 0 ? '300px' : order[i] === 1 ? '240px' : '200px';
+                const color = order[i] === 0 ? '#FFD700' : order[i] === 1 ? '#C0C0C0' : '#CD7F32';
+                const label = order[i] === 0 ? '1st' : order[i] === 1 ? '2nd' : '3rd';
+
+                return (
+                  <motion.div 
+                    key={displayDonor._id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.2 }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '150px' }}
+                  >
+                    <div style={{ marginBottom: '1rem', position: 'relative' }}>
+                      <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: `4px solid ${color}`, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+                        {displayDonor.profileImage ? (
+                          <img src={`${API_BASE_URL}${displayDonor.profileImage}`} alt={displayDonor.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', background: '#F5F5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>👤</div>
+                        )}
+                      </div>
+                      <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', background: color, color: 'white', width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.875rem', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
+                        {label}
+                      </div>
+                    </div>
+                    
+                    <h4 style={{ fontWeight: '700', marginBottom: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{displayDonor.name}</h4>
+                    
+                    <motion.div 
+                      initial={{ height: 0 }}
+                      whileInView={{ height }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                      style={{ 
+                        width: '60px', 
+                        background: `linear-gradient(to top, ${color}44, ${color})`, 
+                        borderRadius: '0.75rem 0.75rem 0 0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-start',
+                        padding: '1rem 0',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        boxShadow: `0 -5px 20px ${color}22`
+                      }}
+                    >
+                      <span style={{ fontSize: '1.25rem' }}>{displayDonor.donationCount}</span>
+                      <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Meals</span>
+                    </motion.div>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <p style={{ color: '#666', fontStyle: 'italic' }}>No donations recorded yet. Be the first to top the leaderboard!</p>
+            )}
+          </div>
+        </motion.div>
       </main>
 
       {/* Contact Section */}

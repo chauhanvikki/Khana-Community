@@ -5,7 +5,7 @@ import { User, Package, Calendar, Phone, CheckCircle, Clock, LogOut, Sparkles, M
 import Chat from '../components/Chat';
 import ProfileImageUpload from '../components/ProfileImageUpload';
 
-const API_BASE_URL = "https://khana-community.onrender.com";
+import { API_BASE_URL } from "../config";
 
 function VolunteerDashboard() {
   const [availableTasks, setAvailableTasks] = useState([]);
@@ -227,7 +227,7 @@ setSelectedDonor({ id: donorId, name: donorName || 'Donor', image: donorImage ||
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 border">
                 {volunteer?.profileImage ? (
-                  <img src={volunteer.profileImage} alt={volunteer?.name} className="w-12 h-12 object-cover" />
+                  <img src={`${API_BASE_URL}${volunteer.profileImage}`} alt={volunteer?.name} className="w-12 h-12 object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">👤</div>
                 )}
@@ -339,7 +339,7 @@ setSelectedDonor({ id: donorId, name: donorName || 'Donor', image: donorImage ||
 <div className="flex items-center gap-2">
                               <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 border">
                                 {task.donorId?.profileImage ? (
-                                  <img src={task.donorId.profileImage} alt={task.donorId?.name} className="w-6 h-6 object-cover" />
+                                  <img src={`${API_BASE_URL}${task.donorId.profileImage}`} alt={task.donorId?.name} className="w-6 h-6 object-cover" />
                                 ) : (
                                   <User size={18} className="text-[#FF9933]" />
                                 )}

@@ -11,7 +11,8 @@ import {
   completeDonation,
   getAvailableDonations,
   getVolunteerDonations,
-  markAsDelivered
+  markAsDelivered,
+  getLeaderboard
 } from "../controllers/donationController.js";
 
 const router = express.Router();
@@ -21,6 +22,7 @@ const router = express.Router();
 router.post('/', authMiddleware, createDonation);
 router.get('/', authMiddleware, getDonations);
 router.get('/my-donations', authMiddleware, getDonationsByDonor);
+router.get('/leaderboard', getLeaderboard); // Public route
 
 // Volunteer routes
 router.put('/:id/claim', authMiddleware, claimDonation);

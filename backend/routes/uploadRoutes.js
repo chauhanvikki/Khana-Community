@@ -57,4 +57,25 @@ router.post('/me/avatar', auth, upload.single('image'), async (req, res) => {
   }
 });
 
+// Delete current user's avatar
+router.delete('/me/avatar', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.profileImage) {
+      const filePath = path.join(uploadsDir, path.basename(user.profileImage));
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    user.profileImage = '';
+    await user.save();
+
+    res.json({ message: 'Profile image removed', user });
+  } catch (err) {
+    console.error('Avatar delete error:', err);
+    res.status(500).json({ message: 'Server error while removing avatar' });
+  }
+});
+
 export default router;

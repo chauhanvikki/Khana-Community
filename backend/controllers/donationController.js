@@ -203,12 +203,50 @@ const donations = await Donation.find({ claimedBy: req.user.id })
 // ✅ New controller
 export const getAvailableDonations = async (req, res) => {
   try {
-const donations = await Donation.find({ status: "available" })
+    const donations = await Donation.find({ status: "available" })
       .populate("donorId", "name email phone profileImage");
     console.log('Available donations:', donations);
     res.json(donations);
   } catch (err) {
     console.error('Error in getAvailableDonations:', err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+// Get Top Donors Leaderboard
+export const getLeaderboard = async (req, res) => {
+  try {
+    const leaderboard = await Donation.aggregate([
+      {
+        $group: {
+          _id: "$donorId",
+          donationCount: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "donorDetails"
+        }
+      },
+      { $unwind: "$donorDetails" },
+      { $match: { "donorDetails.role": "donor" } }, // Filter for donors only
+      { $sort: { donationCount: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          _id: 1,
+          donationCount: 1,
+          name: "$donorDetails.name",
+          profileImage: "$donorDetails.profileImage"
+        }
+      }
+    ]);
+    res.status(200).json(leaderboard);
+  } catch (error) {
+    console.error('Leaderboard error:', error);
+    res.status(500).json({ message: 'Error fetching leaderboard', error: error.message });
   }
 };

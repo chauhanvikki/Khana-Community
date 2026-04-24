@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Send, X, User, Clock, Check, CheckCheck } from 'lucide-react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import { API_BASE_URL } from '../config';
 
-const API_BASE_URL = 'https://khana-community.onrender.com';
 
 const Chat = ({ isOpen, onClose, recipientId, recipientName, recipientRole, currentUserId, currentUserRole, recipientImage }) => {
   const [messages, setMessages] = useState([]);
@@ -169,7 +169,7 @@ const Chat = ({ isOpen, onClose, recipientId, recipientName, recipientRole, curr
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white rounded-full overflow-hidden flex items-center justify-center">
                 {recipientImage ? (
-                  <img src={recipientImage} alt={recipientName} className="w-12 h-12 object-cover" />
+                  <img src={recipientImage.startsWith('/uploads') ? `${API_BASE_URL}${recipientImage}` : recipientImage} alt={recipientName} className="w-12 h-12 object-cover" />
                 ) : (
                   <User size={24} className="text-[#4CAF50]" />
                 )}

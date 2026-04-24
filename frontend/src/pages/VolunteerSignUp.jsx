@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from 'framer-motion';
 import { Users, Mail, Lock, User as UserIcon, UserPlus } from 'lucide-react';
+import { API_BASE_URL } from "../config";
 
 export default function VolunteerSignUp() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function VolunteerSignUp() {
     setLoading(true);
 
     try {
-      const res = await axios.post("https://khana-community.onrender.com/api/auth/signup", {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/signup`, {
         name,
         email,
         password,

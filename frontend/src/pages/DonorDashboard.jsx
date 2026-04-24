@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Heart, Package, MapPin, Calendar, User, LogOut, Phone, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import Chat from '../components/Chat';
 import ProfileImageUpload from '../components/ProfileImageUpload';
+import { API_BASE_URL } from '../config';
 
 const DonorDashboard = () => {
   const token = localStorage.getItem('token');
@@ -28,7 +29,7 @@ const DonorDashboard = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const res = await axios.get('https://khana-community.onrender.com/api/auth/me', {
+      const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 10000
       });
@@ -44,7 +45,7 @@ const DonorDashboard = () => {
 
   const fetchMyDonations = async () => {
     try {
-      const res = await axios.get('https://khana-community.onrender.com/api/donations/my-donations', {
+      const res = await axios.get(`${API_BASE_URL}/api/donations/my-donations`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 10000
       });
@@ -84,7 +85,7 @@ const DonorDashboard = () => {
     }
 
     try {
-      await axios.post('https://khana-community.onrender.com/api/donations', formData, {
+      await axios.post(`${API_BASE_URL}/api/donations`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -136,7 +137,7 @@ const DonorDashboard = () => {
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 border">
                 {user?.profileImage ? (
-                  <img src={user.profileImage} alt={user?.name} className="w-12 h-12 object-cover" />
+                  <img src={`${API_BASE_URL}${user.profileImage}`} alt={user?.name} className="w-12 h-12 object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">👤</div>
                 )}
@@ -334,7 +335,7 @@ const DonorDashboard = () => {
                           <div className="flex items-center gap-2 text-gray-600">
                             <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 border">
                               {donation.claimedBy?.profileImage ? (
-                                <img src={donation.claimedBy.profileImage} alt={donation.claimedBy.name} className="w-6 h-6 object-cover" />
+                                <img src={`${API_BASE_URL}${donation.claimedBy.profileImage}`} alt={donation.claimedBy.name} className="w-6 h-6 object-cover" />
                               ) : (
                                 <User size={16} className="text-green-500" />
                               )}

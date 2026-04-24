@@ -8,6 +8,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import jwt from "jsonwebtoken";
 import { Server as SocketIOServer } from "socket.io";
+import dns from "dns";
+
+// Set DNS servers to resolve MongoDB SRV records if local DNS fails
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 import authRoutes from "./routes/authRoutes.js";
 import donationRoutes from "./routes/donationRoutes.js";
