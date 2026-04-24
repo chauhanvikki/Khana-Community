@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, Mail, Lock, User as UserIcon, UserPlus } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 export default function DonorSignUp() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function DonorSignUp() {
     const data = { name, email, password ,role:"donor"};
 
     try {
-      const res = await axios.post("https://khana-community.onrender.com/api/auth/signup", data);
+      const res = await axios.post(`${API_BASE_URL}/api/auth/signup`, data);
       alert("Account created! Please login.");
       console.log(res.data);
       navigate('/auth/login');

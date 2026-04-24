@@ -4,6 +4,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { motion } from 'framer-motion';
 import { Users, Mail, Lock, LogIn, Heart } from 'lucide-react';
+import { API_BASE_URL } from "../config";
 
 export default function VolunteerLogin() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function VolunteerLogin() {
     e.preventDefault();
     try {
       const res = await axios.post(
-        "https://khana-community.onrender.com/api/auth/login",
+        `${API_BASE_URL}/api/auth/login`,
         formData
       );
       console.log("Volunteer logged in:", res.data);
