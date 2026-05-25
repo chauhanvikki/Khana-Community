@@ -5,7 +5,7 @@ import { OAuth2Client } from "google-auth-library";
 import OTPModel from "../models/otpModel.js";
 import { sendOTP, sendThankYou } from "../utils/email.js";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client();
 
 async function signup(req, res) {
   try {
