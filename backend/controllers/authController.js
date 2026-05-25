@@ -167,10 +167,11 @@ async function googleLogin(req, res) {
     // Send OTP to email
     try {
       await sendOTP(email, otp);
+      console.log(`OTP sent successfully to ${email}`);
     } catch (mailErr) {
-      console.error("Mail sending failed:", mailErr);
+      console.error("Mail sending failed - User:", process.env.EMAIL_USER, "Error:", mailErr.message);
       return res.status(500).json({ 
-        message: "Failed to send OTP email. Please check your backend email configuration (App Password)." 
+        message: `Failed to send OTP email: ${mailErr.message}` 
       });
     }
 
