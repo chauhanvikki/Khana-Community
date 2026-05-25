@@ -122,18 +122,30 @@ async function getMe(req, res) {
 
 async function googleLogin(req, res) {
   console.log("POST /api/auth/google-login called with role:", req.body.role);
+  console.log("GOOGLE_CLIENT_ID configured:", !!process.env.GOOGLE_CLIENT_ID);
   try {
     const { token, role } = req.body;
     if (!token) {
       return res.status(400).json({ message: "Google token is required" });
     }
 
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      console.error("GOOGLE_CLIENT_ID is not set in environment variables");
+      return res.status(500).json({ message: "Google login is not configured on the server" });
+    }
 
-    const payload = ticket.getPayload();
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error("Google token verification failed:", verifyErr.message);
+      return res.status(401).json({ message: "Invalid Google token. Please try again." });
+    }
+
     const { email, sub: googleId, name, picture } = payload;
 
     // Check if user already exists with a DIFFERENT role
@@ -148,7 +160,7 @@ async function googleLogin(req, res) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Save OTP to DB
-    await OTPModel.deleteMany({ email }); // Clear old OTPs
+    await OTPModel.deleteMany({ email });
     const newOTP = new OTPModel({ email, otp });
     await newOTP.save();
 
