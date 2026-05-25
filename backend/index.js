@@ -172,9 +172,13 @@ app.get("/api/health", (req, res) => {
   res.json({ 
     status: "healthy", 
     message: "API is working",
-    cors: {
-      origin: req.headers.origin,
-      allowedOrigins: allowedOrigins
+    env: {
+      hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasEmailUser: !!process.env.EMAIL_USER,
+      hasEmailPass: !!process.env.EMAIL_PASS,
+      hasJwtSecret: !!process.env.JWT_SECRET_KEY,
+      hasMongoUri: !!process.env.MONGO_URI,
+      frontendUrl: process.env.FRONTEND_URL
     }
   });
 });
