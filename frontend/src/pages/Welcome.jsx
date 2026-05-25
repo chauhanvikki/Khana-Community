@@ -63,6 +63,7 @@ import axios from "axios";
 import { motion } from 'framer-motion';
 import { Heart, Package, LogOut, MessageCircle, Calendar, User, TrendingUp } from 'lucide-react';
 import Chat from '../components/Chat';
+import { API_BASE_URL } from '../config';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -79,13 +80,13 @@ export default function Welcome() {
         const token = localStorage.getItem("token");
         
         // Fetch user profile
-        const userRes = await axios.get("https://khana-community.onrender.com/api/auth/me", {
+        const userRes = await axios.get(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCurrentUser(userRes.data);
 
         // Fetch donations
-        const res = await axios.get("https://khana-community.onrender.com/api/donations/my-donations", {
+        const res = await axios.get(`${API_BASE_URL}/api/donations/my-donations`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setDonations(res.data);
@@ -241,6 +242,7 @@ export default function Welcome() {
                     <th style={{ padding: '0.75rem', textAlign: 'left' }}>Food</th>
                     <th style={{ padding: '0.75rem', textAlign: 'left' }}>Quantity</th>
                     <th style={{ padding: '0.75rem', textAlign: 'left' }}>Pickup Date</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Status</th>
                     <th style={{ padding: '0.75rem', textAlign: 'left' }}>Volunteer</th>
                     <th style={{ padding: '0.75rem', textAlign: 'center' }}>Action</th>
                   </tr>
@@ -263,8 +265,20 @@ export default function Welcome() {
                           year: 'numeric'
                         })}
                       </td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ 
+                          padding: '0.25rem 0.75rem', 
+                          borderRadius: '1rem', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 'bold',
+                          background: donation.status === 'completed' ? '#DEF7EC' : donation.status === 'available' ? '#E1EFFE' : '#FEF3C7',
+                          color: donation.status === 'completed' ? '#03543F' : donation.status === 'available' ? '#1E429F' : '#92400E'
+                        }}>
+                          {donation.status.charAt(0).toUpperCase() + donation.status.slice(1)}
+                        </span>
+                      </td>
                       <td style={{ padding: '1rem', color: '#374151' }}>
-                        {donation.claimedBy ? donation.claimedBy.name : "Waiting for volunteer..."}
+                        {donation.claimedBy ? (typeof donation.claimedBy === 'object' ? donation.claimedBy.name : donation.claimedBy) : "Waiting..."}
                       </td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
                         {donation.claimedBy ? (

@@ -6,9 +6,11 @@ const userSchema = new mongoose.Schema({
     type : String,
     required: true,
   },
-  password : {
+  password: {
     type: String,
-    required: true,
+    required: function() {
+      return !this.isGoogleUser; // Password required only if not a Google user
+    },
     select: false,
   },
   email: {
@@ -21,8 +23,17 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['donor', 'volunteer'],
+    enum: ['donor', 'volunteer', 'admin'],
     default: 'donor',
+  },
+  isGoogleUser: {
+    type: Boolean,
+    default: false,
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow multiple nulls
   },
   profileImage: {
     type: String, // URL like /uploads/<file>

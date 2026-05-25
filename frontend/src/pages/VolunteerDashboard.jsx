@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { motion } from 'framer-motion';
-import { User, Package, Calendar, Phone, CheckCircle, Clock, LogOut, Sparkles, MessageCircle, Truck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, Package, Calendar, Phone, CheckCircle, Clock, LogOut, Sparkles, MessageCircle, Truck, MapPin, X, Heart } from 'lucide-react';
 import Chat from '../components/Chat';
+import NotificationBell from '../components/NotificationBell';
 import ProfileImageUpload from '../components/ProfileImageUpload';
+import { useNotifications } from '../context/NotificationContext';
 
 import { API_BASE_URL } from "../config";
 
@@ -14,120 +16,56 @@ function VolunteerDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
-const [selectedDonor, setSelectedDonor] = useState(null); // { id, name, image? }
+  const [selectedDonor, setSelectedDonor] = useState(null);
+  const [activeTab, setActiveTab] = useState('available');
+
+  const { unreadCounts, markAsRead } = useNotifications();
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
-    return { Authorization: `Bearer ${token}` };
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
   };
+
+  const fetchVolunteer = useCallback(async () => {
+    try {
+      const headers = getAuthHeaders();
+      const response = await axios.get(`${API_BASE_URL}/api/auth/me`, { headers });
+      setVolunteer(response.data);
+    } catch (err) {
+      console.error("Error fetching volunteer profile:", err);
+    }
+  }, []);
 
   const fetchAvailableTasks = useCallback(async () => {
     try {
-      setError(null);
       const headers = getAuthHeaders();
-      const res = await axios.get(`${API_BASE_URL}/api/donations/available`, {
-        headers: {
-          ...headers,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        timeout: 10000,
-        withCredentials: false
-      });
-      console.log('Available tasks response:', res.data);
-      setAvailableTasks(res.data || []);
+      const response = await axios.get(`${API_BASE_URL}/api/donations/available`, { headers });
+      setAvailableTasks(response.data);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to fetch available tasks";
-      setError(errorMsg);
       console.error("Error fetching available tasks:", err);
     }
   }, []);
 
   const fetchAcceptedTasks = useCallback(async () => {
     try {
-      setError(null);
       const headers = getAuthHeaders();
-      const res = await axios.get(`${API_BASE_URL}/api/donations/volunteer`, {
-        headers: {
-          ...headers,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        timeout: 10000,
-        withCredentials: false
-      });
-      console.log('Accepted tasks response:', res.data);
-      setTasks(res.data || []);
+      const response = await axios.get(`${API_BASE_URL}/api/donations/volunteer`, { headers });
+      setTasks(response.data);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to fetch your tasks";
-      setError(errorMsg);
-      console.error("Error fetching volunteer tasks:", err);
+      console.error("Error fetching accepted tasks:", err);
     }
   }, []);
-
-  const fetchVolunteer = useCallback(async () => {
-    try {
-      setError(null);
-      const headers = getAuthHeaders();
-      const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          ...headers,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        timeout: 10000,
-        withCredentials: false
-      });
-      setVolunteer(res.data);
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to fetch volunteer info";
-      setError(errorMsg);
-      console.error("Error fetching volunteer info:", err);
-    }
-  }, []);
-
-  // Mark a claimed task as delivered
-  const markAsDelivered = async (taskId) => {
-    if (!taskId) {
-      setError("Invalid task ID");
-      return;
-    }
-    try {
-      setLoading(true);
-      setError(null);
-      const headers = getAuthHeaders();
-      await axios.put(
-        `${API_BASE_URL}/api/donations/${encodeURIComponent(taskId)}/deliver`,
-        {},
-        {
-          headers: {
-            ...headers,
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          timeout: 10000,
-          withCredentials: false
-        }
-      );
-      // Refresh tasks so UI reflects Delivered status
-      await fetchAcceptedTasks();
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to mark as delivered";
-      setError(errorMsg);
-      console.error("Error marking as delivered:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await Promise.all([
-          fetchVolunteer(),
-          fetchAvailableTasks(),
-          fetchAcceptedTasks()
-        ]);
+        await Promise.all([fetchVolunteer(), fetchAvailableTasks(), fetchAcceptedTasks()]);
+      } catch (err) {
+        setError("Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
@@ -136,57 +74,50 @@ const [selectedDonor, setSelectedDonor] = useState(null); // { id, name, image? 
   }, [fetchVolunteer, fetchAvailableTasks, fetchAcceptedTasks]);
 
   const acceptTask = async (taskId) => {
-    if (!taskId) {
-      setError("Invalid task ID");
-      return;
-    }
-
     try {
       setLoading(true);
-      setError(null);
       const headers = getAuthHeaders();
-      await axios.put(
-        `${API_BASE_URL}/api/donations/${encodeURIComponent(taskId)}/claim`,
-        {},
-        { 
-          headers: {
-            ...headers,
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          timeout: 10000,
-          withCredentials: false
-        }
-      );
-
-      await Promise.all([
-        fetchAvailableTasks(),
-        fetchAcceptedTasks()
-      ]);
+      await axios.put(`${API_BASE_URL}/api/donations/${taskId}/claim`, {}, { headers });
+      await Promise.all([fetchAvailableTasks(), fetchAcceptedTasks()]);
+      setActiveTab('accepted');
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to accept task";
-      setError(errorMsg);
-      console.error("Error accepting task:", err);
+      setError(err.response?.data?.message || "Failed to accept task");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = '/volunteer/login';
+  const markAsDelivered = async (taskId) => {
+    try {
+      setLoading(true);
+      const headers = getAuthHeaders();
+      await axios.put(`${API_BASE_URL}/api/donations/${taskId}/deliver`, {}, { headers });
+      await fetchAcceptedTasks();
+    } catch (err) {
+      setError("Failed to mark as delivered");
+    } finally {
+      setLoading(false);
+    }
   };
 
-const openChat = (donorId, donorName, donorImage) => {
-    console.log('Opening chat with donor:', { donorId, donorName });
-    
-    if (!donorId) {
-      console.error('No donor ID provided!');
-      alert('Cannot open chat: Donor ID is missing');
-      return;
+  const completeTask = async (taskId) => {
+    try {
+      setLoading(true);
+      const headers = getAuthHeaders();
+      await axios.put(`${API_BASE_URL}/api/donations/${taskId}/complete`, {}, { headers });
+      await fetchAcceptedTasks();
+      setActiveTab('completed');
+    } catch (err) {
+      setError("Failed to complete task");
+    } finally {
+      setLoading(false);
     }
-    
-setSelectedDonor({ id: donorId, name: donorName || 'Donor', image: donorImage || '' });
+  };
+
+  const openChat = (id, name, image) => {
+    setSelectedDonor({ id, name, image });
     setChatOpen(true);
+    markAsRead(id);
   };
 
   const closeChat = () => {
@@ -194,447 +125,246 @@ setSelectedDonor({ id: donorId, name: donorName || 'Donor', image: donorImage ||
     setSelectedDonor(null);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#E8F5E9] via-white to-[#C8E6C9] flex justify-center items-center">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-center"
-        >
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[#4CAF50] mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600 font-semibold">Loading your dashboard...</p>
-        </motion.div>
-      </div>
-    );
-  }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.replace("/auth/login");
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#E8F5E9] via-white to-[#C8E6C9]">
-      {/* Animated Background Elements */}
-      <div style={{ position: 'absolute', top: '5%', left: '3%', fontSize: '5rem', opacity: 0.04, animation: 'float 7s ease-in-out infinite' }}>🥘</div>
-      <div style={{ position: 'absolute', top: '50%', right: '5%', fontSize: '4rem', opacity: 0.04, animation: 'float 9s ease-in-out infinite 1s' }}>🍱</div>
-      <div style={{ position: 'absolute', bottom: '10%', left: '10%', fontSize: '6rem', opacity: 0.04, animation: 'float 8s ease-in-out infinite 2s' }}>🚚</div>
-
-      {/* Header */}
-      <motion.div 
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50"
-      >
-<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 border">
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 bg-gradient-to-br from-[#4CAF50] to-[#66BB6A] rounded-2xl shadow-lg flex items-center justify-center text-white overflow-hidden border-2 border-white">
                 {volunteer?.profileImage ? (
-                  <img src={`${API_BASE_URL}${volunteer.profileImage}`} alt={volunteer?.name} className="w-12 h-12 object-cover" />
+                  <img src={`${API_BASE_URL}${volunteer.profileImage}`} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">👤</div>
+                  <User size={28} />
                 )}
               </div>
               <div>
-                <motion.h1 
-                  initial={{ x: -20 }}
-                  animate={{ x: 0 }}
-                  className="text-3xl font-bold bg-gradient-to-r from-[#4CAF50] to-[#66BB6A] bg-clip-text text-transparent flex items-center gap-2"
-                >
-                  <Sparkles size={28} className="text-[#4CAF50]" />
-                  Welcome, {volunteer ? (volunteer.name || volunteer.username || "Volunteer") : "Volunteer"}! 👋
-                </motion.h1>
-                <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
-                  <User size={16} />
-                  Role: <span className="font-semibold capitalize text-[#4CAF50]">{volunteer?.role === 'volunteer' ? 'Volunteer' : volunteer?.role || 'Volunteer'}</span>
+                <h1 className="text-2xl font-bold text-gray-900">Welcome, {volunteer?.name || 'Volunteer'}! 👋</h1>
+                <p className="text-sm text-gray-500 flex items-center gap-2 mt-0.5">
+                  <Sparkles size={14} className="text-yellow-500" /> Community Hero
                 </p>
               </div>
             </div>
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-6">
+              <NotificationBell />
               <ProfileImageUpload currentImage={volunteer?.profileImage} onUploaded={(url)=> setVolunteer((u)=> ({...u, profileImage: url}))} />
-              <motion.button
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-all shadow-md"
-              >
-                <LogOut size={18} />
-                Logout
-              </motion.button>
+              <button onClick={handleLogout} className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-all border border-red-100">
+                <LogOut size={18} /> Logout
+              </button>
             </div>
           </div>
         </div>
       </motion.div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tab Navigation */}
+        <div className="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+          {[
+            { id: 'available', label: 'Available', icon: Package, count: availableTasks.length, color: 'text-green-600', bg: 'bg-green-50' },
+            { id: 'accepted', label: 'My Tasks', icon: Clock, count: (tasks || []).filter(t => t.status === 'claimed' || t.status === 'delivered').length, color: 'text-orange-600', bg: 'bg-orange-50' },
+            { id: 'completed', label: 'History', icon: CheckCircle, count: (tasks || []).filter(t => t.status === 'completed').length, color: 'text-blue-600', bg: 'bg-blue-50' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 min-w-[120px] flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold transition-all ${
+                activeTab === tab.id 
+                  ? `${tab.bg} ${tab.color} shadow-sm ring-1 ring-inset ring-black/5` 
+                  : 'text-gray-400 hover:bg-gray-50'
+              }`}
+            >
+              <tab.icon size={20} />
+              <div className="text-left">
+                <p className="text-[10px] uppercase tracking-widest opacity-60 font-black">{tab.label}</p>
+                <p className="text-lg leading-none mt-1">{tab.count}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
         {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-100 border-2 border-red-400 text-red-700 px-6 py-4 rounded-xl mb-6 flex items-center gap-3 shadow-md"
-          >
-            <span className="text-2xl">⚠️</span>
-            <span className="font-semibold">{error}</span>
-          </motion.div>
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 flex items-center gap-3 rounded-r-xl">
+            <X size={20} onClick={() => setError(null)} className="cursor-pointer" />
+            <p className="font-semibold">{error}</p>
+          </div>
         )}
 
-        {/* Available Tasks Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-[#4CAF50] to-[#66BB6A] p-6">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Package size={28} />
-                Available Tasks
-              </h2>
-              <p className="text-white/90 text-sm mt-1">
-                {availableTasks.length} task{availableTasks.length !== 1 ? 's' : ''} waiting for volunteers
-              </p>
-            </div>
-
-            <div className="overflow-x-auto">
-              {availableTasks.length > 0 ? (
-                <div className="p-6 space-y-4">
-                  {availableTasks.map((task, index) => {
-                    console.log('Available task:', task);
-                    return (
-                      <motion.div
-                        key={task._id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ y: -4 }}
-                        className="bg-gradient-to-br from-[#E8F5E9] to-white p-6 rounded-xl border-2 border-gray-100 hover:border-[#4CAF50]/40 hover:shadow-lg transition-all"
-                      >
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                          <div className="md:col-span-1">
-                            <div className="flex items-center gap-2">
-                              <Package size={20} className="text-[#4CAF50]" />
-                              <div>
-                                <p className="text-xs text-gray-500 font-semibold uppercase">Food Item</p>
-                                <p className="font-bold text-gray-900">{task.foodName}</p>
-                                <p className="text-sm text-gray-600">({task.quantity})</p>
-                              </div>
-                            </div>
+        <AnimatePresence mode="wait">
+          {activeTab === 'available' && (
+            <motion.div key="available" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {availableTasks.length > 0 ? (
+                  availableTasks.map((task) => (
+                    <motion.div whileHover={{ y: -5 }} key={task._id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden group">
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+                            <Package size={24} />
                           </div>
-
+                          <span className="px-3 py-1 bg-green-100 text-green-600 text-[10px] font-black uppercase rounded-full">Available</span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{task.foodName}</h3>
+                        <p className="text-gray-500 text-sm mb-6 flex items-center gap-2"><MapPin size={14} className="text-red-500" /> {task.location}</p>
+                        
+                        <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-2xl">
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-gray-200 flex items-center justify-center">
+                            {task.donorId?.profileImage ? (
+                              <img src={`${API_BASE_URL}${task.donorId.profileImage}`} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <User size={14} className="text-orange-500" />
+                            )}
+                          </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <Calendar size={18} className="text-[#FFD54F]" />
-                              <div>
-                                <p className="text-xs text-gray-500 font-semibold uppercase">Pickup Date</p>
-                                <p className="font-semibold text-gray-900">
-                                  {new Date(task.pickupDate).toLocaleDateString('en-IN', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                  })}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div>
-<div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 border">
-                                {task.donorId?.profileImage ? (
-                                  <img src={`${API_BASE_URL}${task.donorId.profileImage}`} alt={task.donorId?.name} className="w-6 h-6 object-cover" />
-                                ) : (
-                                  <User size={18} className="text-[#FF9933]" />
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 font-semibold uppercase">Donor</p>
-                                <p className="font-semibold text-gray-900">{task.donorId?.name || "Unknown Donor"}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Phone size={18} className="text-[#2196F3]" />
-                              <div>
-                                <p className="text-xs text-gray-500 font-semibold uppercase">Phone</p>
-                                <p className="font-semibold text-gray-900">{task.donorId?.phone || task.phoneNo}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-center">
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => acceptTask(task._id)}
-                              disabled={loading}
-                              className="px-6 py-3 bg-gradient-to-r from-[#4CAF50] to-[#66BB6A] text-white font-bold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                            >
-                              <CheckCircle size={18} />
-                              {loading ? "Processing..." : "Accept Task"}
-                            </motion.button>
+                            <p className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">Donor</p>
+                            <p className="text-sm font-bold text-gray-700">{task.donorId?.name || "Unknown Donor"}</p>
                           </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">📦</div>
-                  <p className="text-gray-500 text-lg font-semibold">No available tasks right now</p>
-                  <p className="text-gray-400 text-sm mt-2">Check back soon for new opportunities to help!</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
 
-        {/* Your Accepted Tasks Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          {(() => {
-            // Derive accepted and delivered tasks from all volunteer tasks
-            const acceptedTasks = (tasks || []).filter(t => t.status === 'claimed');
-            const deliveredTasks = (tasks || []).filter(t => t.status === 'delivered');
-            return (
-              <>
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
-                  <div className="bg-gradient-to-r from-[#FF9933] to-[#FF6F00] p-6">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                      <Clock size={28} />
-                      Your Accepted Tasks
-                    </h2>
-                    <p className="text-white/90 text-sm mt-1">
-                      {acceptedTasks.length} active task{acceptedTasks.length !== 1 ? 's' : ''}
-                    </p>
+                        <div className="space-y-3 mb-8">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400 font-medium">Quantity:</span>
+                            <span className="font-bold text-gray-700">{task.quantity}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-400 font-medium">Pickup:</span>
+                            <span className="font-bold text-gray-700">{new Date(task.pickupDate).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <button onClick={() => acceptTask(task._id)} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-lg shadow-green-500/20 transition-all flex items-center justify-center gap-2">
+                          Accept Mission <Truck size={18} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center">
+                    <div className="text-6xl mb-6">🍱</div>
+                    <h3 className="text-2xl font-bold text-gray-900">All caught up!</h3>
+                    <p className="text-gray-500 max-w-xs mx-auto mt-2">No new donations right now. Thank you for your readiness to help!</p>
                   </div>
+                )}
+              </div>
+            </motion.div>
+          )}
 
-                  <div className="overflow-x-auto">
-                    {acceptedTasks.length > 0 ? (
-                      <div className="p-6 space-y-4">
-                        {acceptedTasks.map((task, index) => (
-                          <motion.div
-                            key={task._id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            whileHover={{ y: -4 }}
-                            className="bg-gradient-to-br from-[#FFF8E7] to-white p-6 rounded-xl border-2 border-gray-100 hover:border-[#FF9933]/40 hover:shadow-lg transition-all"
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                              <div className="md:col-span-1">
-                                <div className="flex items-center gap-2">
-                                  <Package size={20} className="text-[#FF9933]" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Food Item</p>
-                                    <p className="font-bold text-gray-900">{task.foodName}</p>
-                                    <p className="text-sm text-gray-600">({task.quantity})</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <Calendar size={18} className="text-[#FFD54F]" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Pickup Date</p>
-                                    <p className="font-semibold text-gray-900">
-                                      {new Date(task.pickupDate).toLocaleDateString('en-IN', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric'
-                                      })}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <User size={18} className="text-[#4CAF50]" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Donor</p>
-                                    <p className="font-semibold text-gray-900">{task.donorId?.name || task.donorName || "Unknown Donor"}</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <Phone size={18} className="text-[#2196F3]" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Phone</p>
-                                    <p className="font-semibold text-gray-900">{task.donorId?.phone || task.phoneNo}</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2 justify-center items-center">
-                                {/* Status badge for claimed */}
-                                <span className="px-4 py-2 rounded-full text-sm font-bold shadow-md bg-gradient-to-r from-blue-400 to-blue-600 text-white">
-                                  🔄 In Progress
-                                </span>
-                                {/* Mark as Delivered button */}
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={() => markAsDelivered(task._id)}
-                                  disabled={loading}
-                                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm"
-                                >
-                                  <Truck size={16} />
-                                  {loading ? 'Updating...' : 'Mark as Delivered'}
-                                </motion.button>
-                                {/* Chat with donor */}
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={() => {
-                                    console.log('Task donorId data:', task.donorId);
-                                    const donorId = typeof task.donorId === 'string' 
-                                      ? task.donorId 
-                                      : task.donorId?._id;
-                                    const donorName = typeof task.donorId === 'object' 
-                                      ? task.donorId?.name 
-                                      : task.donorName || 'Donor';
-                                    console.log('Extracted:', { donorId, donorName });
-                                    openChat(donorId, donorName);
-                                  }}
-                                  className="px-4 py-2 bg-gradient-to-r from-[#4CAF50] to-[#66BB6A] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm"
-                                >
-                                  <MessageCircle size={16} />
-                                  Chat with Donor
-                                </motion.button>
-                              </div>
+          {activeTab === 'accepted' && (
+            <motion.div key="accepted" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+              <div className="space-y-4">
+                {(tasks || []).filter(t => t.status === 'claimed' || t.status === 'delivered').length > 0 ? (
+                  (tasks || []).filter(t => t.status === 'claimed' || t.status === 'delivered').map(task => (
+                    <div key={task._id} className="bg-gradient-to-br from-yellow-50 to-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-wrap md:flex-nowrap items-center justify-between gap-8">
+                      <div className="flex items-center gap-6 flex-1">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner ${task.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
+                          {task.status === 'delivered' ? <CheckCircle size={32} /> : <Clock size={32} />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-2xl font-bold text-gray-900">{task.foodName}</h3>
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${task.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                              {task.status === 'delivered' ? '📦 Delivered' : '⏳ In Progress'}
+                            </span>
+                          </div>
+                          <p className="text-gray-500 flex items-center gap-1.5 text-sm font-medium"><MapPin size={14} className="text-red-500" /> {task.location}</p>
+                          
+                          <div className="flex items-center gap-2 mt-4">
+                            <div className="w-6 h-6 rounded-full overflow-hidden border border-gray-200">
+                              {task.donorId?.profileImage ? (
+                                <img src={`${API_BASE_URL}${task.donorId.profileImage}`} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-gray-100 flex items-center justify-center text-[10px]">👤</div>
+                              )}
                             </div>
-                          </motion.div>
-                        ))}
+                            <p className="text-sm text-gray-600">Donor: <span className="font-bold text-gray-900">{task.donorId?.name || "Donor"}</span></p>
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="text-6xl mb-4">🎯</div>
-                        <p className="text-gray-500 text-lg font-semibold">You haven't accepted any tasks yet</p>
-                        <p className="text-gray-400 text-sm mt-2">Browse available tasks above to get started!</p>
+                      
+                      <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                        {task.status === 'claimed' ? (
+                          <button onClick={() => markAsDelivered(task._id)} className="w-full sm:w-auto px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+                             <Truck size={18} /> Mark Delivered
+                          </button>
+                        ) : (
+                          <button onClick={() => completeTask(task._id)} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
+                            <CheckCircle size={18} /> Mission Completed
+                          </button>
+                        )}
+                        
+                        <button 
+                          onClick={() => openChat(task.donorId?._id || task.donorId, task.donorId?.name || "Donor", task.donorId?.profileImage)} 
+                          className="w-full sm:w-auto px-6 py-4 bg-white border-2 border-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 relative"
+                        >
+                          <MessageCircle size={20} className="text-blue-500" />
+                          Chat with {task.donorId?.name?.split(' ')[0] || "Donor"}
+                          {unreadCounts[task.donorId?._id || task.donorId] > 0 && (
+                            <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white animate-bounce shadow-lg">
+                              {unreadCounts[task.donorId?._id || task.donorId]}
+                            </span>
+                          )}
+                        </button>
                       </div>
-                    )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-gray-200">
+                    <p className="text-gray-400 font-bold text-lg">No active missions found.</p>
+                    <p className="text-gray-400 text-sm mt-1 italic">The community is waiting for your help!</p>
                   </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'completed' && (
+            <motion.div key="completed" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-8 space-y-6">
+                  {(tasks || []).filter(t => t.status === 'completed').length > 0 ? (
+                    (tasks || []).filter(t => t.status === 'completed').map(task => (
+                      <div key={task._id} className="flex items-center justify-between p-6 hover:bg-green-50/30 rounded-3xl transition-all group border border-transparent hover:border-green-100">
+                        <div className="flex items-center gap-6">
+                          <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm">
+                            <Heart size={20} fill="currentColor" className="opacity-80" />
+                          </div>
+                          <div>
+                            <p className="font-black text-gray-900 text-lg">{task.foodName}</p>
+                            <p className="text-sm text-gray-500 flex items-center gap-1.5"><MapPin size={12} /> {task.location}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black text-gray-300 uppercase tracking-widest mb-1">Delivered On</p>
+                          <p className="text-sm font-bold text-gray-500">{new Date(task.updatedAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10">
+                      <div className="text-5xl mb-4 opacity-20">🏆</div>
+                      <p className="text-gray-400 font-bold">Your completed missions will appear here!</p>
+                    </div>
+                  )}
                 </div>
-
-                {/* Delivered Tasks Section */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                  <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-6">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                      <CheckCircle size={28} />
-                      Delivered Tasks
-                    </h2>
-                    <p className="text-white/90 text-sm mt-1">
-                      {deliveredTasks.length} delivered task{deliveredTasks.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    {deliveredTasks.length > 0 ? (
-                      <div className="p-6 space-y-4">
-                        {deliveredTasks.map((task, index) => (
-                          <motion.div
-                            key={task._id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            whileHover={{ y: -4 }}
-                            className="bg-gradient-to-br from-[#E8F5E9] to-white p-6 rounded-xl border-2 border-gray-100 hover:border-emerald-400/40 hover:shadow-lg transition-all"
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                              <div className="md:col-span-1">
-                                <div className="flex items-center gap-2">
-                                  <Package size={20} className="text-emerald-600" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Food Item</p>
-                                    <p className="font-bold text-gray-900">{task.foodName}</p>
-                                    <p className="text-sm text-gray-600">({task.quantity})</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <Calendar size={18} className="text-[#FFD54F]" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Pickup Date</p>
-                                    <p className="font-semibold text-gray-900">
-                                      {new Date(task.pickupDate).toLocaleDateString('en-IN', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric'
-                                      })}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <User size={18} className="text-[#4CAF50]" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Donor</p>
-                                    <p className="font-semibold text-gray-900">{task.donorId?.name || task.donorName || "Unknown Donor"}</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <Phone size={18} className="text-[#2196F3]" />
-                                  <div>
-                                    <p className="text-xs text-gray-500 font-semibold uppercase">Phone</p>
-                                    <p className="font-semibold text-gray-900">{task.donorId?.phone || task.phoneNo}</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex justify-center items-center">
-                                <span className="px-4 py-2 rounded-full text-sm font-bold shadow-md bg-gradient-to-r from-emerald-400 to-green-600 text-white">
-                                  ✅ Delivered
-                                </span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="text-6xl mb-4">📦</div>
-                        <p className="text-gray-500 text-lg font-semibold">No delivered tasks yet</p>
-                        <p className="text-gray-400 text-sm mt-2">Once you deliver, tasks will appear here.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-        </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(5deg); }
-        }
-      `}</style>
-
-      {/* Chat Component */}
+      
       {chatOpen && selectedDonor && (
         <Chat
+          key={selectedDonor.id}
           isOpen={chatOpen}
           onClose={closeChat}
           recipientId={selectedDonor.id}
           recipientName={selectedDonor.name}
           recipientRole="donor"
-          currentUserId={volunteer?._id}
+          currentUserId={volunteer?._id?.toString() || volunteer?._id}
           currentUserRole="volunteer"
           recipientImage={selectedDonor?.image}
         />

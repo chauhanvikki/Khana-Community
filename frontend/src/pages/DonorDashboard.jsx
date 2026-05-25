@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Heart, Package, MapPin, Calendar, User, LogOut, Phone, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import Chat from '../components/Chat';
+import NotificationBell from '../components/NotificationBell';
 import ProfileImageUpload from '../components/ProfileImageUpload';
+import { useNotifications } from '../context/NotificationContext';
 import { API_BASE_URL } from '../config';
 
 const DonorDashboard = () => {
   const token = localStorage.getItem('token');
   
-  if (!token) {
-    window.location.href = '/auth/login';
-    return null;
-  }
+  useEffect(() => {
+    if (!token) {
+      window.location.replace('/auth/login');
+    }
+  }, [token]);
+
+  if (!token) return null;
 
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -112,7 +117,7 @@ const DonorDashboard = () => {
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = '/auth/login';
+    window.location.replace('/'); // Go to homepage and clear history
   };
 
   const openChat = (volunteerId, volunteerName, volunteerImage) => {
@@ -128,6 +133,8 @@ const DonorDashboard = () => {
     setChatOpen(false);
     setSelectedVolunteer(null);
   };
+
+  const { unreadCounts, markAsRead } = useNotifications();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-orange-50">
@@ -152,7 +159,8 @@ const DonorDashboard = () => {
                 </p>
               </div>
             </div>
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-6">
+              <NotificationBell />
               <ProfileImageUpload currentImage={user?.profileImage} onUploaded={(url)=> setUser((u)=> ({...u, profileImage: url}))} />
               <button
                 onClick={handleLogout}
@@ -359,10 +367,15 @@ const DonorDashboard = () => {
                                   : '';
                                 openChat(volunteerId, volunteerName, volunteerImage);
                               }}
-                              className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                              className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 relative"
                             >
                               <MessageCircle size={18} />
                               Chat with {typeof donation.claimedBy === 'object' ? donation.claimedBy.name : 'Volunteer'}
+                              {unreadCounts[typeof donation.claimedBy === 'string' ? donation.claimedBy : donation.claimedBy?._id] > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full animate-bounce shadow-lg border-2 border-white">
+                                  {unreadCounts[typeof donation.claimedBy === 'string' ? donation.claimedBy : donation.claimedBy?._id]}
+                                </span>
+                              )}
                             </button>
                           </div>
                         )}
@@ -384,12 +397,13 @@ const DonorDashboard = () => {
 
       {chatOpen && selectedVolunteer && (
         <Chat
+          key={selectedVolunteer.id}
           isOpen={chatOpen}
           onClose={closeChat}
           recipientId={selectedVolunteer.id}
           recipientName={selectedVolunteer.name}
           recipientRole="volunteer"
-          currentUserId={user?._id}
+          currentUserId={user?._id?.toString() || user?._id}
           currentUserRole="donor"
           recipientImage={selectedVolunteer?.image}
         />

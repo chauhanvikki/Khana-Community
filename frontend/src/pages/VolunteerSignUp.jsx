@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from 'framer-motion';
-import { Users, Mail, Lock, User as UserIcon, UserPlus } from 'lucide-react';
+import { Users, Mail, Lock, User as UserIcon, UserPlus, Sparkles } from 'lucide-react';
 import { API_BASE_URL } from "../config";
+import OTPModal from "../components/OTPModal";
+import GoogleLoginButton from "../components/GoogleLoginButton";
+import { jwtDecode } from "jwt-decode";
 
 export default function VolunteerSignUp() {
   const navigate = useNavigate();
@@ -11,6 +14,9 @@ export default function VolunteerSignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingGoogleData, setPendingGoogleData] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,6 +39,30 @@ export default function VolunteerSignUp() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleAuthInitiated = (email, googleData) => {
+    setPendingEmail(email);
+    setPendingGoogleData(googleData);
+    setShowOTPModal(true);
+  };
+
+  const handleVerifySuccess = (data) => {
+    const { token, role } = data;
+    localStorage.clear();
+    localStorage.setItem("token", token);
+    
+    try {
+      const decoded = jwtDecode(token);
+      localStorage.setItem("volunteerId", decoded.id);
+      localStorage.setItem("volunteerName", decoded.name);
+      localStorage.setItem("volunteerEmail", decoded.email);
+      localStorage.setItem("userRole", decoded.role || role);
+    } catch (decodeErr) {
+      console.error("Token decode error:", decodeErr);
+    }
+
+    navigate("/volunteer/dashboard");
   };
 
   return (
@@ -183,6 +213,21 @@ export default function VolunteerSignUp() {
               {loading ? "Creating Account..." : "Sign Up"}
             </motion.button>
 
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500 font-medium">Or continue with</span>
+              </div>
+            </div>
+
+            <GoogleLoginButton 
+              onAuthInitiated={handleGoogleAuthInitiated}
+              role="volunteer"
+              disabled={loading}
+            />
+
             <motion.span 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -193,6 +238,14 @@ export default function VolunteerSignUp() {
               <Link to="/volunteer/login" className="text-[#4CAF50] font-bold hover:underline">Login</Link>
             </motion.span>
           </form>
+
+          <OTPModal 
+            isOpen={showOTPModal}
+            onClose={() => setShowOTPModal(false)}
+            email={pendingEmail}
+            googleData={pendingGoogleData}
+            onVerifySuccess={handleVerifySuccess}
+          />
         </motion.div>
       </div>
 

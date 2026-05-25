@@ -3,12 +3,21 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { motion } from 'framer-motion';
-import { Users, Mail, Lock, LogIn, Heart } from 'lucide-react';
+import { Users, Mail, Lock, LogIn, Heart, Sparkles } from 'lucide-react';
 import { API_BASE_URL } from "../config";
+import OTPModal from "../components/OTPModal";
+import GoogleLoginButton from "../components/GoogleLoginButton";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 export default function VolunteerLogin() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingGoogleData, setPendingGoogleData] = useState(null);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,7 +28,7 @@ export default function VolunteerLogin() {
     try {
       const res = await axios.post(
         `${API_BASE_URL}/api/auth/login`,
-        formData
+        { ...formData, role: 'volunteer' }
       );
       console.log("Volunteer logged in:", res.data);
 
@@ -37,12 +46,38 @@ export default function VolunteerLogin() {
       localStorage.setItem("volunteerEmail", decoded.email);
       localStorage.setItem("userRole", decoded.role || role);
 
-      navigate("/volunteer/dashboard");
+      navigate("/volunteer/dashboard", { replace: true });
 
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleGoogleAuthInitiated = (email, googleData) => {
+    setPendingEmail(email);
+    setPendingGoogleData(googleData);
+    setShowOTPModal(true);
+  };
+
+  const handleVerifySuccess = (data) => {
+    const { token, role } = data;
+    localStorage.clear();
+    localStorage.setItem("token", token);
+    
+    try {
+      const decoded = jwtDecode(token);
+      localStorage.setItem("volunteerId", decoded.id);
+      localStorage.setItem("volunteerName", decoded.name);
+      localStorage.setItem("volunteerEmail", decoded.email);
+      localStorage.setItem("userRole", decoded.role || role);
+    } catch (decodeErr) {
+      console.error("Token decode error:", decodeErr);
+    }
+
+    navigate("/volunteer/dashboard", { replace: true });
   };
 
   return (
@@ -147,6 +182,15 @@ export default function VolunteerLogin() {
                 onChange={handleChange}
                 className="w-full p-3 border-2 text-black border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent transition-all"
               />
+              <div className="flex justify-end mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-xs font-semibold text-[#4CAF50] hover:underline"
+                >
+                  Forgot Password?
+                </button>
+              </div>
             </motion.div>
 
             <motion.button
@@ -159,9 +203,37 @@ export default function VolunteerLogin() {
               className="mt-2 w-full py-4 bg-gradient-to-r from-[#4CAF50] to-[#66BB6A] text-white font-bold rounded-xl hover:shadow-xl transition-all flex items-center justify-center gap-2"
             >
               <LogIn size={20} />
-              Login
+              {loading ? "Logging in..." : "Login"}
             </motion.button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500 font-medium">Or continue with</span>
+              </div>
+            </div>
+
+            <GoogleLoginButton 
+              onAuthInitiated={handleGoogleAuthInitiated}
+              role="volunteer"
+              disabled={loading}
+            />
           </form>
+
+          <OTPModal 
+            isOpen={showOTPModal}
+            onClose={() => setShowOTPModal(false)}
+            email={pendingEmail}
+            googleData={pendingGoogleData}
+            onVerifySuccess={handleVerifySuccess}
+          />
+
+          <ForgotPasswordModal 
+            isOpen={showForgotModal}
+            onClose={() => setShowForgotModal(false)}
+          />
 
           <motion.p 
             initial={{ opacity: 0 }}

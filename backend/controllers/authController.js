@@ -1,6 +1,11 @@
- import userModel from "../models/userModel.js";
+import userModel from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { OAuth2Client } from "google-auth-library";
+import OTPModel from "../models/otpModel.js";
+import { sendOTP, sendThankYou } from "../utils/email.js";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 async function signup(req, res) {
   try {
@@ -40,10 +45,9 @@ async function signup(req, res) {
   }
 }
 
-
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     // Input validation
     if (!email || !password) {
@@ -53,6 +57,19 @@ async function login(req, res) {
     const user = await userModel.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Role verification
+    if (role && user.role !== role) {
+      return res.status(403).json({ 
+        message: `Access denied. This account is registered as a ${user.role}.` 
+      });
+    }
+
+    if (!user.password) {
+      return res.status(401).json({ 
+        message: "This account uses Google Login. Please use 'Continue with Google'." 
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -103,4 +120,193 @@ async function getMe(req, res) {
   }
 }
 
-export { signup, login, getMe };
+async function googleLogin(req, res) {
+  console.log("POST /api/auth/google-login called with role:", req.body.role);
+  try {
+    const { token, role } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: "Google token is required" });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, sub: googleId, name, picture } = payload;
+
+    // Check if user already exists with a DIFFERENT role
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser && existingUser.role !== role) {
+      return res.status(403).json({ 
+        message: `This email is already registered as a ${existingUser.role}. Please use the ${existingUser.role} login page.` 
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save OTP to DB
+    await OTPModel.deleteMany({ email }); // Clear old OTPs
+    const newOTP = new OTPModel({ email, otp });
+    await newOTP.save();
+
+    // Send OTP to email
+    try {
+      await sendOTP(email, otp);
+    } catch (mailErr) {
+      console.error("Mail sending failed:", mailErr);
+      return res.status(500).json({ 
+        message: "Failed to send OTP email. Please check your backend email configuration (App Password)." 
+      });
+    }
+
+    res.status(200).json({ 
+      message: "OTP sent to your email", 
+      email,
+      tempData: { googleId, name, picture, role }
+    });
+  } catch (err) {
+    console.error(`Error in googleLogin: ${err.message}`, err.stack);
+    res.status(500).json({ message: "Internal Server Error during Google Auth" });
+  }
+}
+
+async function verifyGoogleOTP(req, res) {
+  const { email, otp, googleData } = req.body;
+  console.log(`Verifying OTP for ${email}: ${otp}`);
+  try {
+    const { googleId, name, role, picture } = googleData;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    const otpRecord = await OTPModel.findOne({ email, otp });
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    await OTPModel.deleteMany({ email });
+
+    let user = await userModel.findOne({ email });
+
+    if (!user) {
+      user = new userModel({
+        name,
+        email,
+        googleId,
+        isGoogleUser: true,
+        role: role || 'donor',
+        profileImage: picture || '',
+      });
+      await user.save();
+    } else {
+      if (!user.isGoogleUser) {
+        user.isGoogleUser = true;
+        user.googleId = googleId;
+        if (!user.profileImage) user.profileImage = picture;
+        await user.save();
+      }
+    }
+
+    const token = jwt.sign(
+      { email: user.email, name: user.name, id: user._id, role: user.role },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "24h" }
+    );
+
+    await sendThankYou(user.email, user.name);
+
+    res.status(200).json({
+      message: "Authentication successful",
+      token,
+      donorName: user.name,
+      donorId: user._id,
+      role: user.role
+    });
+  } catch (err) {
+    console.error(`Error in verifyGoogleOTP: ${err.message}`, err.stack);
+    res.status(500).json({ message: "Internal Server Error during OTP verification" });
+  }
+}
+
+async function resendOTP(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await OTPModel.deleteMany({ email });
+    const newOTP = new OTPModel({ email, otp });
+    await newOTP.save();
+
+    try {
+      await sendOTP(email, otp);
+    } catch (mailErr) {
+      console.error("Mail sending failed:", mailErr);
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
+
+    res.status(200).json({ message: "New OTP sent to your email" });
+  } catch (err) {
+    console.error(`Error in resendOTP: ${err.message}`);
+    res.status(500).json({ message: "Internal Server Error during Resend OTP" });
+  }
+}
+
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await userModel.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await OTPModel.deleteMany({ email });
+    const newOTP = new OTPModel({ email, otp });
+    await newOTP.save();
+
+    try {
+      await sendOTP(email, otp);
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to send reset code" });
+    }
+
+    res.status(200).json({ message: "Reset code sent to your email" });
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const otpRecord = await OTPModel.findOne({ email, otp });
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid or expired reset code" });
+    }
+
+    const user = await userModel.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    // If it was a Google user, they now have a password too
+    await user.save();
+    await OTPModel.deleteMany({ email });
+
+    res.status(200).json({ message: "Password reset successful. Please login." });
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export { signup, login, getMe, googleLogin, verifyGoogleOTP, resendOTP, forgotPassword, resetPassword };

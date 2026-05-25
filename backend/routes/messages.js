@@ -25,9 +25,23 @@ router.post('/', auth, async (req, res) => {
     // Emit real-time events via Socket.io
     const io = req.app.get('io');
     if (io) {
-      io.to(recipientId).emit('message', newMessage);
-      io.to(req.user.id).emit('message', newMessage);
-      io.to(recipientId).emit('notification', { type: 'message', from: req.user.id, message: newMessage.message, at: newMessage.createdAt });
+      const recipientStr = recipientId.toString();
+      const senderStr = req.user.id.toString();
+
+      console.log(`[Socket] Emitting message to recipient room: ${recipientStr}`);
+      io.to(recipientStr).emit('message', newMessage);
+      console.log(`[Socket] Emitting message to sender room: ${senderStr}`);
+      io.to(senderStr).emit('message', newMessage);
+      
+      console.log(`[Socket] Emitting notification to recipient room: ${recipientStr}`);
+      io.to(recipientStr).emit('notification', { 
+        type: 'message', 
+        from: senderStr, 
+        senderName: req.user.name,
+        senderRole: req.user.role,
+        message: newMessage.message, 
+        at: newMessage.createdAt 
+      });
     }
     
     res.status(201).json({
@@ -106,6 +120,30 @@ router.get('/unread/count', auth, async (req, res) => {
   } catch (err) {
     console.error('Error counting unread messages:', err);
     res.status(500).json({ message: 'Server error while counting unread messages' });
+  }
+});
+
+// Mark messages from a specific sender as read
+router.patch('/read/:senderId', auth, async (req, res) => {
+  try {
+    const { senderId } = req.params;
+    const recipientId = req.user.id;
+
+    await Message.updateMany(
+      { senderId, recipientId, read: false },
+      { $set: { read: true } }
+    );
+
+    console.log(`[Socket] Marking messages from ${senderId} as read by ${recipientId}`);
+    const io = req.app.get('io');
+    if (io) {
+      console.log(`[Socket] Emitting messages_read to sender room: ${senderId}`);
+      io.to(senderId.toString()).emit('messages_read', { by: recipientId });
+    }
+
+    res.json({ message: 'Messages marked as read' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error marking messages as read' });
   }
 });
 

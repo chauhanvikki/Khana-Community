@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Send, MessageCircle } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -22,7 +23,7 @@ const Contact = () => {
     setLoading(true);
     
     try {
-      await axios.post('https://khana-community.onrender.com/api/contact/send', formData);
+      await axios.post(`${API_BASE_URL}/api/contact/send`, formData);
       setSuccess(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
       setTimeout(() => setSuccess(false), 5000);

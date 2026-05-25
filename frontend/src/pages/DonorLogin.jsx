@@ -4,8 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { motion } from 'framer-motion';
-import { Heart, Mail, Lock, LogIn } from 'lucide-react';
+import { Heart, Mail, Lock, LogIn, Sparkles } from 'lucide-react';
 import { API_BASE_URL } from "../config";
+import OTPModal from "../components/OTPModal";
+import GoogleLoginButton from "../components/GoogleLoginButton";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 
 export default function DonorLogin() {
@@ -13,6 +16,10 @@ export default function DonorLogin() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingGoogleData, setPendingGoogleData] = useState(null);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,7 +39,7 @@ export default function DonorLogin() {
 
       const res = await axios.post(
         `${API_BASE_URL}/api/auth/login`,
-        formData,
+        { ...formData, role: 'donor' },
         {
           timeout: 10000,
           headers: {
@@ -65,7 +72,7 @@ export default function DonorLogin() {
         throw new Error("Invalid token received");
       }
 
-      navigate("/auth/welcome");
+      navigate("/auth/welcome", { replace: true });
     } catch (err) {
       console.error("Login error:", err);
       const errorMessage = err.response?.data?.message || err.message || "Login failed";
@@ -73,6 +80,30 @@ export default function DonorLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleAuthInitiated = (email, googleData) => {
+    setPendingEmail(email);
+    setPendingGoogleData(googleData);
+    setShowOTPModal(true);
+  };
+
+  const handleVerifySuccess = (data) => {
+    const { token, role } = data;
+    localStorage.clear();
+    localStorage.setItem("token", token);
+    
+    try {
+      const decoded = jwtDecode(token);
+      localStorage.setItem("donorId", decoded.id);
+      localStorage.setItem("donorName", decoded.name);
+      localStorage.setItem("donorEmail", decoded.email);
+      localStorage.setItem("userRole", decoded.role || role);
+    } catch (decodeErr) {
+      console.error("Token decode error:", decodeErr);
+    }
+
+    navigate("/auth/welcome", { replace: true });
   };
 
 //   return (
@@ -296,6 +327,15 @@ export default function DonorLogin() {
                 onChange={handleChange}
                 className="w-full p-3 text-black border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition-all"
               />
+              <div className="flex justify-end mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-xs font-semibold text-[#FF9933] hover:underline"
+                >
+                  Forgot Password?
+                </button>
+              </div>
             </motion.div>
 
             <motion.button
@@ -311,7 +351,35 @@ export default function DonorLogin() {
               <LogIn size={20} />
               {loading ? "Logging in..." : "Login"}
             </motion.button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500 font-medium">Or continue with</span>
+              </div>
+            </div>
+
+            <GoogleLoginButton 
+              onAuthInitiated={handleGoogleAuthInitiated}
+              role="donor"
+              disabled={loading}
+            />
           </form>
+
+          <OTPModal 
+            isOpen={showOTPModal}
+            onClose={() => setShowOTPModal(false)}
+            email={pendingEmail}
+            googleData={pendingGoogleData}
+            onVerifySuccess={handleVerifySuccess}
+          />
+
+          <ForgotPasswordModal 
+            isOpen={showForgotModal}
+            onClose={() => setShowForgotModal(false)}
+          />
 
           <motion.p 
             initial={{ opacity: 0 }}

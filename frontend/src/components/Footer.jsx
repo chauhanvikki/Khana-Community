@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+
 import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Github } from 'lucide-react';
 
 const Footer = () => {
@@ -12,12 +14,13 @@ const Footer = () => {
   ];
 
   const quickLinks = [
-    { name: 'About Us', href: '#about' },
-    { name: 'How It Works', href: '#how-it-works' },
-    { name: 'Contact', href: '#contact' },
-    { name: 'Privacy Policy', href: '#privacy' },
-    { name: 'Terms of Service', href: '#terms' }
+    { name: 'About Us', href: '/about' },
+    { name: 'How It Works', href: '/how-it-works' },
+    { name: 'Contact', href: '/contact' },
+    { name: 'Privacy Policy', href: '/privacy' },
+    { name: 'Terms of Service', href: '/terms' }
   ];
+
 
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
@@ -70,14 +73,15 @@ const Footer = () => {
             <ul className="space-y-3">
               {quickLinks.map((link, index) => (
                 <motion.li key={link.name} whileHover={{ x: 5 }}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-gray-300 hover:text-orange-400 transition-colors duration-200 flex items-center"
                   >
                     <span className="w-2 h-2 bg-orange-500 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                     {link.name}
-                  </a>
+                  </Link>
                 </motion.li>
+
               ))}
             </ul>
           </motion.div>
