@@ -82,27 +82,17 @@ export default function DonorLogin() {
     }
   };
 
-  const handleGoogleAuthInitiated = (email, googleData) => {
-    setPendingEmail(email);
-    setPendingGoogleData(googleData);
-    setShowOTPModal(true);
-  };
-
-  const handleVerifySuccess = (data) => {
+  const handleGoogleSuccess = (data) => {
     const { token, role } = data;
     localStorage.clear();
     localStorage.setItem("token", token);
-    
     try {
       const decoded = jwtDecode(token);
       localStorage.setItem("donorId", decoded.id);
       localStorage.setItem("donorName", decoded.name);
       localStorage.setItem("donorEmail", decoded.email);
       localStorage.setItem("userRole", decoded.role || role);
-    } catch (decodeErr) {
-      console.error("Token decode error:", decodeErr);
-    }
-
+    } catch (e) { console.error(e); }
     navigate("/auth/welcome", { replace: true });
   };
 
@@ -362,19 +352,11 @@ export default function DonorLogin() {
             </div>
 
             <GoogleLoginButton 
-              onAuthInitiated={handleGoogleAuthInitiated}
+              onSuccess={handleGoogleSuccess}
               role="donor"
               disabled={loading}
             />
           </form>
-
-          <OTPModal 
-            isOpen={showOTPModal}
-            onClose={() => setShowOTPModal(false)}
-            email={pendingEmail}
-            googleData={pendingGoogleData}
-            onVerifySuccess={handleVerifySuccess}
-          />
 
           <ForgotPasswordModal 
             isOpen={showForgotModal}

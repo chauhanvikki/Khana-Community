@@ -56,27 +56,17 @@ export default function VolunteerLogin() {
     }
   };
 
-  const handleGoogleAuthInitiated = (email, googleData) => {
-    setPendingEmail(email);
-    setPendingGoogleData(googleData);
-    setShowOTPModal(true);
-  };
-
-  const handleVerifySuccess = (data) => {
+  const handleGoogleSuccess = (data) => {
     const { token, role } = data;
     localStorage.clear();
     localStorage.setItem("token", token);
-    
     try {
       const decoded = jwtDecode(token);
       localStorage.setItem("volunteerId", decoded.id);
       localStorage.setItem("volunteerName", decoded.name);
       localStorage.setItem("volunteerEmail", decoded.email);
       localStorage.setItem("userRole", decoded.role || role);
-    } catch (decodeErr) {
-      console.error("Token decode error:", decodeErr);
-    }
-
+    } catch (e) { console.error(e); }
     navigate("/volunteer/dashboard", { replace: true });
   };
 
@@ -216,19 +206,11 @@ export default function VolunteerLogin() {
             </div>
 
             <GoogleLoginButton 
-              onAuthInitiated={handleGoogleAuthInitiated}
+              onSuccess={handleGoogleSuccess}
               role="volunteer"
               disabled={loading}
             />
           </form>
-
-          <OTPModal 
-            isOpen={showOTPModal}
-            onClose={() => setShowOTPModal(false)}
-            email={pendingEmail}
-            googleData={pendingGoogleData}
-            onVerifySuccess={handleVerifySuccess}
-          />
 
           <ForgotPasswordModal 
             isOpen={showForgotModal}

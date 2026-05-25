@@ -4,23 +4,20 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
-export default function GoogleLoginButton({ onAuthInitiated, role, disabled }) {
+export default function GoogleLoginButton({ onSuccess, role, disabled }) {
   const handleSuccess = async (credentialResponse) => {
     if (disabled) return;
-    console.log('Attempting login with API:', API_BASE_URL);
-    
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/google-login`, {
         token: credentialResponse.credential,
         role: role
       });
-
-      if (response.data.email) {
-        onAuthInitiated(response.data.email, response.data.tempData);
+      if (response.data.token) {
+        onSuccess(response.data);
       }
     } catch (err) {
       console.error('Google Auth Failed:', err);
-      alert(err.response?.data?.message || 'Google Login failed');
+      alert(err.response?.data?.message || 'Google Login failed. Please try again.');
     }
   };
 
@@ -32,8 +29,8 @@ export default function GoogleLoginButton({ onAuthInitiated, role, disabled }) {
     >
       <GoogleLogin
         onSuccess={handleSuccess}
-        onError={() => console.log('Login Failed')}
-        useOneTap
+        onError={() => alert('Google Login failed. Please try again.')}
+        useOneTap={false}
         auto_select={false}
         theme="filled_blue"
         shape="pill"

@@ -122,7 +122,6 @@ async function getMe(req, res) {
 
 async function googleLogin(req, res) {
   console.log("POST /api/auth/google-login called with role:", req.body.role);
-  console.log("GOOGLE_CLIENT_ID configured:", !!process.env.GOOGLE_CLIENT_ID);
   try {
     const { token, role } = req.body;
     if (!token) {
@@ -130,7 +129,6 @@ async function googleLogin(req, res) {
     }
 
     if (!process.env.GOOGLE_CLIENT_ID) {
-      console.error("GOOGLE_CLIENT_ID is not set in environment variables");
       return res.status(500).json({ message: "Google login is not configured on the server" });
     }
 
@@ -148,7 +146,7 @@ async function googleLogin(req, res) {
 
     const { email, sub: googleId, name, picture } = payload;
 
-    // Check if user already exists with a DIFFERENT role
+    // Check if user exists with a DIFFERENT role
     const existingUser = await userModel.findOne({ email });
     if (existingUser && existingUser.role !== role) {
       return res.status(403).json({ 
@@ -156,33 +154,43 @@ async function googleLogin(req, res) {
       });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Save OTP to DB
-    await OTPModel.deleteMany({ email });
-    const newOTP = new OTPModel({ email, otp });
-    await newOTP.save();
-
-    // Send OTP to email
-    try {
-      await sendOTP(email, otp);
-      console.log(`OTP sent successfully to ${email}`);
-    } catch (mailErr) {
-      console.error("Mail sending failed - User:", process.env.EMAIL_USER, "Error:", mailErr.message);
-      return res.status(500).json({ 
-        message: `Failed to send OTP email: ${mailErr.message}` 
+    // Create or update user directly without OTP
+    let user = existingUser;
+    if (!user) {
+      user = new userModel({
+        name,
+        email,
+        googleId,
+        isGoogleUser: true,
+        role: role || 'donor',
+        profileImage: picture || '',
       });
+      await user.save();
+    } else {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.isGoogleUser = true;
+        if (!user.profileImage) user.profileImage = picture;
+        await user.save();
+      }
     }
 
-    res.status(200).json({ 
-      message: "OTP sent to your email", 
-      email,
-      tempData: { googleId, name, picture, role }
+    const jwtToken = jwt.sign(
+      { email: user.email, name: user.name, id: user._id, role: user.role },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "24h" }
+    );
+
+    res.status(200).json({
+      message: "Google login successful",
+      token: jwtToken,
+      donorName: user.name,
+      donorId: user._id,
+      role: user.role
     });
   } catch (err) {
     console.error(`Error in googleLogin: ${err.message}`, err.stack);
-    res.status(500).json({ message: "Internal Server Error during Google Auth" });
+    res.status(500).json({ message: err.message || "Internal Server Error during Google Auth" });
   }
 }
 
