@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from 'framer-motion';
-import { Users, Mail, Lock, User as UserIcon, UserPlus, Sparkles } from 'lucide-react';
+import { Users, Mail, Lock, User as UserIcon, UserPlus } from 'lucide-react';
 import { API_BASE_URL } from "../config";
-import OTPModal from "../components/OTPModal";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import { jwtDecode } from "jwt-decode";
 
@@ -14,55 +13,33 @@ export default function VolunteerSignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOTPModal, setShowOTPModal] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [pendingGoogleData, setPendingGoogleData] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/signup`, {
-        name,
-        email,
-        password,
-        role: "volunteer"
-      });
-
+      await axios.post(`${API_BASE_URL}/api/auth/signup`, { name, email, password, role: "volunteer" });
       alert("Volunteer account created! Please login.");
-      console.log(res.data);
       navigate("/volunteer/login");
     } catch (err) {
       alert(err.response?.data?.message || "Something went wrong");
-      console.log(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleAuthInitiated = (email, googleData) => {
-    setPendingEmail(email);
-    setPendingGoogleData(googleData);
-    setShowOTPModal(true);
-  };
-
-  const handleVerifySuccess = (data) => {
+  const handleGoogleSuccess = (data) => {
     const { token, role } = data;
     localStorage.clear();
     localStorage.setItem("token", token);
-    
     try {
       const decoded = jwtDecode(token);
       localStorage.setItem("volunteerId", decoded.id);
       localStorage.setItem("volunteerName", decoded.name);
       localStorage.setItem("volunteerEmail", decoded.email);
       localStorage.setItem("userRole", decoded.role || role);
-    } catch (decodeErr) {
-      console.error("Token decode error:", decodeErr);
-    }
-
-    navigate("/volunteer/dashboard");
+    } catch (e) { console.error(e); }
+    navigate("/volunteer/dashboard", { replace: true });
   };
 
   return (
@@ -223,7 +200,7 @@ export default function VolunteerSignUp() {
             </div>
 
             <GoogleLoginButton 
-              onAuthInitiated={handleGoogleAuthInitiated}
+              onSuccess={handleGoogleSuccess}
               role="volunteer"
               disabled={loading}
             />
@@ -238,14 +215,6 @@ export default function VolunteerSignUp() {
               <Link to="/volunteer/login" className="text-[#4CAF50] font-bold hover:underline">Login</Link>
             </motion.span>
           </form>
-
-          <OTPModal 
-            isOpen={showOTPModal}
-            onClose={() => setShowOTPModal(false)}
-            email={pendingEmail}
-            googleData={pendingGoogleData}
-            onVerifySuccess={handleVerifySuccess}
-          />
         </motion.div>
       </div>
 

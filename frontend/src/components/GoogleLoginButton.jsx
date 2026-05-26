@@ -13,7 +13,12 @@ export default function GoogleLoginButton({ onSuccess, role, disabled }) {
         role: role
       });
       if (response.data.token) {
-        onSuccess(response.data);
+        if (typeof onSuccess === 'function') {
+          onSuccess(response.data);
+        } else {
+          console.error('onSuccess prop is not a function:', onSuccess);
+          alert('Login error: callback not defined');
+        }
       }
     } catch (err) {
       console.error('Google Auth Failed:', err);

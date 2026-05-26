@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Mail, Lock, User as UserIcon, UserPlus, Sparkles } from 'lucide-react';
+import { Heart, Mail, Lock, User as UserIcon, UserPlus } from 'lucide-react';
 import { API_BASE_URL } from '../config';
-import OTPModal from "../components/OTPModal";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import { jwtDecode } from "jwt-decode";
 
@@ -15,9 +13,6 @@ export default function DonorSignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOTPModal, setShowOTPModal] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [pendingGoogleData, setPendingGoogleData] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,28 +32,18 @@ export default function DonorSignUp() {
     }
   };
 
-  const handleGoogleAuthInitiated = (email, googleData) => {
-    setPendingEmail(email);
-    setPendingGoogleData(googleData);
-    setShowOTPModal(true);
-  };
-
-  const handleVerifySuccess = (data) => {
+  const handleGoogleSuccess = (data) => {
     const { token, role } = data;
     localStorage.clear();
     localStorage.setItem("token", token);
-    
     try {
       const decoded = jwtDecode(token);
       localStorage.setItem("donorId", decoded.id);
       localStorage.setItem("donorName", decoded.name);
       localStorage.setItem("donorEmail", decoded.email);
       localStorage.setItem("userRole", decoded.role || role);
-    } catch (decodeErr) {
-      console.error("Token decode error:", decodeErr);
-    }
-
-    navigate("/auth/welcome");
+    } catch (e) { console.error(e); }
+    navigate("/auth/welcome", { replace: true });
   };
 
   return (
@@ -220,7 +205,7 @@ export default function DonorSignUp() {
             </div>
 
             <GoogleLoginButton 
-              onAuthInitiated={handleGoogleAuthInitiated}
+              onSuccess={handleGoogleSuccess}
               role="donor"
               disabled={loading}
             />
@@ -238,13 +223,6 @@ export default function DonorSignUp() {
             </motion.span>
           </form>
 
-          <OTPModal 
-            isOpen={showOTPModal}
-            onClose={() => setShowOTPModal(false)}
-            email={pendingEmail}
-            googleData={pendingGoogleData}
-            onVerifySuccess={handleVerifySuccess}
-          />
         </motion.div>
       </div>
 
