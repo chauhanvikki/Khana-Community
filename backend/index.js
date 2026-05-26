@@ -183,6 +183,17 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Test email route
+app.get("/api/test-email", async (req, res) => {
+  try {
+    const { sendThankYou } = await import('./utils/email.js');
+    await sendThankYou(process.env.EMAIL_USER, 'Test User');
+    res.json({ success: true, message: 'Test email sent to ' + process.env.EMAIL_USER });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // DB Connection & Server Start
 const mongoURI = process.env.MONGO_URI;
 
