@@ -1,82 +1,44 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { motion } from 'framer-motion';
-import { Heart, Mail, Lock, LogIn, Sparkles } from 'lucide-react';
+import { Heart, Mail, Lock, LogIn } from 'lucide-react';
 import { API_BASE_URL } from "../config";
-import OTPModal from "../components/OTPModal";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
-
 
 export default function DonorLogin() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showOTPModal, setShowOTPModal] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [pendingGoogleData, setPendingGoogleData] = useState(null);
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError(""); // Clear error when user starts typing
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    
     try {
-      // Input validation
-      if (!formData.email || !formData.password) {
-        throw new Error("Please fill in all fields");
-      }
-
-      const res = await axios.post(
-        `${API_BASE_URL}/api/auth/login`,
-        { ...formData, role: 'donor' },
-        {
-          timeout: 10000,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          withCredentials: false
-        }
-      );
-
+      if (!formData.email || !formData.password) throw new Error("Please fill in all fields");
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { ...formData, role: 'donor' });
       const { token, role } = res.data;
-      if (!token) {
-        throw new Error("No token received");
-      }
-
-      // Clear all previous user data
+      if (!token) throw new Error("No token received");
       localStorage.clear();
-
-      // Set new user data
       localStorage.setItem("token", token);
-
-      try {
-        const decoded = jwtDecode(token);
-        localStorage.setItem("donorId", decoded.id);
-        localStorage.setItem("donorName", decoded.name);
-        localStorage.setItem("donorEmail", decoded.email);
-        localStorage.setItem("userRole", decoded.role || role);
-      } catch (decodeErr) {
-        console.error("Token decode error:", decodeErr);
-        throw new Error("Invalid token received");
-      }
-
+      const decoded = jwtDecode(token);
+      localStorage.setItem("donorId", decoded.id);
+      localStorage.setItem("donorName", decoded.name);
+      localStorage.setItem("donorEmail", decoded.email);
+      localStorage.setItem("userRole", decoded.role || role);
       navigate("/auth/welcome", { replace: true });
     } catch (err) {
-      console.error("Login error:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Login failed";
-      setError(errorMessage);
+      setError(err.response?.data?.message || err.message || "Login failed");
     } finally {
       setLoading(false);
     }

@@ -3,9 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { motion } from 'framer-motion';
-import { Users, Mail, Lock, LogIn, Heart, Sparkles } from 'lucide-react';
+import { Users, Mail, Lock, LogIn } from 'lucide-react';
 import { API_BASE_URL } from "../config";
-import OTPModal from "../components/OTPModal";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
@@ -13,10 +12,6 @@ export default function VolunteerLogin() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showOTPModal, setShowOTPModal] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [pendingGoogleData, setPendingGoogleData] = useState(null);
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   const handleChange = (e) => {
@@ -25,31 +20,19 @@ export default function VolunteerLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const res = await axios.post(
-        `${API_BASE_URL}/api/auth/login`,
-        { ...formData, role: 'volunteer' }
-      );
-      console.log("Volunteer logged in:", res.data);
-
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { ...formData, role: 'volunteer' });
       const { token, role } = res.data;
-      
-      // Clear all previous user data
       localStorage.clear();
-      
-      // Set new user data
       localStorage.setItem("token", token);
-
       const decoded = jwtDecode(token);
       localStorage.setItem("volunteerId", decoded.id);
       localStorage.setItem("volunteerName", decoded.name);
       localStorage.setItem("volunteerEmail", decoded.email);
       localStorage.setItem("userRole", decoded.role || role);
-
       navigate("/volunteer/dashboard", { replace: true });
-
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
