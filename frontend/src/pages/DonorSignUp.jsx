@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Heart, Mail, Lock, User as UserIcon, UserPlus } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import OTPModal from "../components/OTPModal";
 import { jwtDecode } from "jwt-decode";
 
 export default function DonorSignUp() {
@@ -13,6 +14,11 @@ export default function DonorSignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // OTP modal state
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpGoogleData, setOtpGoogleData] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +38,7 @@ export default function DonorSignUp() {
     }
   };
 
+  // Existing Google user → direct login
   const handleGoogleSuccess = (data) => {
     const { token, role } = data;
     localStorage.clear();
@@ -43,6 +50,29 @@ export default function DonorSignUp() {
       localStorage.setItem("donorEmail", decoded.email);
       localStorage.setItem("userRole", decoded.role || role);
     } catch (e) { console.error(e); }
+    navigate("/auth/welcome", { replace: true });
+  };
+
+  // New Google user → show OTP modal
+  const handleOTPRequired = ({ email, googleData }) => {
+    setOtpEmail(email);
+    setOtpGoogleData(googleData);
+    setShowOTPModal(true);
+  };
+
+  // OTP verified → complete signup
+  const handleOTPVerifySuccess = (data) => {
+    const { token, role } = data;
+    localStorage.clear();
+    localStorage.setItem("token", token);
+    try {
+      const decoded = jwtDecode(token);
+      localStorage.setItem("donorId", decoded.id);
+      localStorage.setItem("donorName", decoded.name);
+      localStorage.setItem("donorEmail", decoded.email);
+      localStorage.setItem("userRole", decoded.role || role);
+    } catch (e) { console.error(e); }
+    setShowOTPModal(false);
     navigate("/auth/welcome", { replace: true });
   };
 
@@ -206,6 +236,7 @@ export default function DonorSignUp() {
 
             <GoogleLoginButton 
               onSuccess={handleGoogleSuccess}
+              onOTPRequired={handleOTPRequired}
               role="donor"
               disabled={loading}
             />
@@ -225,6 +256,15 @@ export default function DonorSignUp() {
 
         </motion.div>
       </div>
+
+      {/* OTP Modal for Google Signup */}
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => setShowOTPModal(false)}
+        email={otpEmail}
+        googleData={otpGoogleData}
+        onVerifySuccess={handleOTPVerifySuccess}
+      />
 
       <style>{`
         @keyframes float {

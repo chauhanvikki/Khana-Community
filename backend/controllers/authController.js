@@ -146,52 +146,70 @@ async function googleLogin(req, res) {
 
     const { email, sub: googleId, name, picture } = payload;
 
-    // Check if user exists with a DIFFERENT role
+    // Check if user exists
     const existingUser = await userModel.findOne({ email });
+
+    // If user exists with a DIFFERENT role, block
     if (existingUser && existingUser.role !== role) {
       return res.status(403).json({ 
         message: `This email is already registered as a ${existingUser.role}. Please use the ${existingUser.role} login page.` 
       });
     }
 
-    // Create or update user directly without OTP
-    let user = existingUser;
-    if (!user) {
-      user = new userModel({
-        name,
-        email,
-        googleId,
-        isGoogleUser: true,
-        role: role || 'donor',
-        profileImage: picture || '',
-      });
-      await user.save();
-    } else {
-      if (!user.googleId) {
-        user.googleId = googleId;
-        user.isGoogleUser = true;
-        if (!user.profileImage) user.profileImage = picture;
-        await user.save();
+    // EXISTING USER → direct login (no OTP needed)
+    if (existingUser) {
+      if (!existingUser.googleId) {
+        existingUser.googleId = googleId;
+        existingUser.isGoogleUser = true;
+        if (!existingUser.profileImage) existingUser.profileImage = picture;
+        await existingUser.save();
       }
+
+      const jwtToken = jwt.sign(
+        { email: existingUser.email, name: existingUser.name, id: existingUser._id, role: existingUser.role },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: "24h" }
+      );
+
+      // Send welcome email (non-blocking)
+      sendThankYou(existingUser.email, existingUser.name).catch(err => 
+        console.error('Welcome email failed:', err.message)
+      );
+
+      return res.status(200).json({
+        message: "Google login successful",
+        token: jwtToken,
+        donorName: existingUser.name,
+        donorId: existingUser._id,
+        role: existingUser.role
+      });
     }
 
-    const jwtToken = jwt.sign(
-      { email: user.email, name: user.name, id: user._id, role: user.role },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "24h" }
-    );
+    // NEW USER → Send OTP for verification before creating account
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await OTPModel.deleteMany({ email });
+    const newOTP = new OTPModel({ email, otp });
+    await newOTP.save();
 
-    // Send welcome email (non-blocking - don't fail login if email fails)
-    sendThankYou(user.email, user.name).catch(err => 
-      console.error('Welcome email failed:', err.message)
-    );
+    try {
+      await sendOTP(email, otp);
+      console.log(`OTP sent to ${email} for Google signup`);
+    } catch (mailErr) {
+      console.error("OTP email sending failed:", mailErr);
+      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+    }
 
+    // Return requireOTP flag so frontend shows OTP modal
     res.status(200).json({
-      message: "Google login successful",
-      token: jwtToken,
-      donorName: user.name,
-      donorId: user._id,
-      role: user.role
+      requireOTP: true,
+      message: "OTP sent to your email for verification",
+      email,
+      googleData: {
+        googleId,
+        name,
+        role: role || 'donor',
+        picture: picture || '',
+      }
     });
   } catch (err) {
     console.error(`Error in googleLogin: ${err.message}`, err.stack);
@@ -243,7 +261,10 @@ async function verifyGoogleOTP(req, res) {
       { expiresIn: "24h" }
     );
 
-    await sendThankYou(user.email, user.name);
+    // Send welcome email (non-blocking - don't fail login if email fails)
+    sendThankYou(user.email, user.name).catch(err => 
+      console.error('Welcome email failed:', err.message)
+    );
 
     res.status(200).json({
       message: "Authentication successful",

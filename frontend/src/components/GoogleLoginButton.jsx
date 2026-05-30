@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
-export default function GoogleLoginButton({ onSuccess, role, disabled }) {
+export default function GoogleLoginButton({ onSuccess, onOTPRequired, role, disabled }) {
   const handleSuccess = async (credentialResponse) => {
     if (disabled) return;
     try {
@@ -12,6 +12,22 @@ export default function GoogleLoginButton({ onSuccess, role, disabled }) {
         token: credentialResponse.credential,
         role: role
       });
+
+      // New user → OTP required
+      if (response.data.requireOTP) {
+        if (typeof onOTPRequired === 'function') {
+          onOTPRequired({
+            email: response.data.email,
+            googleData: response.data.googleData
+          });
+        } else {
+          console.error('onOTPRequired prop is not a function');
+          alert('OTP verification required but handler not defined');
+        }
+        return;
+      }
+
+      // Existing user → direct login
       if (response.data.token) {
         if (typeof onSuccess === 'function') {
           onSuccess(response.data);
