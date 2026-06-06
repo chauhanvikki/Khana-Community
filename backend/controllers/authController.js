@@ -135,29 +135,55 @@ async function getMe(req, res) {
 async function googleLogin(req, res) {
   console.log("POST /api/auth/google-login called with role:", req.body.role);
   try {
-    const { token, role } = req.body;
-    if (!token) {
+    const { token, access_token, role } = req.body;
+    
+    if (!token && !access_token) {
       return res.status(400).json({ message: "Google token is required" });
     }
 
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      return res.status(500).json({ message: "Google login is not configured on the server" });
+    let email, googleId, name, picture;
+
+    if (access_token) {
+      // New flow: verify access_token by calling Google's userinfo API
+      try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${access_token}` }
+        });
+        if (!response.ok) {
+          throw new Error('Failed to verify access token');
+        }
+        const userInfo = await response.json();
+        email = userInfo.email;
+        googleId = userInfo.sub;
+        name = userInfo.name;
+        picture = userInfo.picture;
+      } catch (verifyErr) {
+        console.error("Google access token verification failed:", verifyErr.message);
+        return res.status(401).json({ message: "Invalid Google token. Please try again." });
+      }
+    } else {
+      // Old flow: verify ID token
+      if (!process.env.GOOGLE_CLIENT_ID) {
+        return res.status(500).json({ message: "Google login is not configured on the server" });
+      }
+
+      try {
+        const googleClient = getGoogleClient();
+        const ticket = await googleClient.verifyIdToken({
+          idToken: token,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        email = payload.email;
+        googleId = payload.sub;
+        name = payload.name;
+        picture = payload.picture;
+      } catch (verifyErr) {
+        console.error("Google token verification failed:", verifyErr.message);
+        return res.status(401).json({ message: "Invalid Google token. Please try again." });
+      }
     }
 
-    let payload;
-    try {
-      const googleClient = getGoogleClient();
-      const ticket = await googleClient.verifyIdToken({
-        idToken: token,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      payload = ticket.getPayload();
-    } catch (verifyErr) {
-      console.error("Google token verification failed:", verifyErr.message);
-      return res.status(401).json({ message: "Invalid Google token. Please try again." });
-    }
-
-    const { email, sub: googleId, name, picture } = payload;
 
     // Check if user exists
     const existingUser = await userModel.findOne({ email });
