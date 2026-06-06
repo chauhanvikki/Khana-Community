@@ -167,8 +167,8 @@ function VolunteerDashboard() {
         <div className="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
           {[
             { id: 'available', label: 'Available', icon: Package, count: availableTasks.length, color: 'text-green-600', bg: 'bg-green-50' },
-            { id: 'accepted', label: 'My Tasks', icon: Clock, count: (tasks || []).filter(t => t.status === 'claimed' || t.status === 'delivered').length, color: 'text-orange-600', bg: 'bg-orange-50' },
-            { id: 'completed', label: 'History', icon: CheckCircle, count: (tasks || []).filter(t => t.status === 'completed').length, color: 'text-blue-600', bg: 'bg-blue-50' }
+            { id: 'accepted', label: 'My Tasks', icon: Clock, count: (tasks || []).filter(t => t.status === 'claimed').length, color: 'text-orange-600', bg: 'bg-orange-50' },
+            { id: 'completed', label: 'History', icon: CheckCircle, count: (tasks || []).filter(t => t.status === 'delivered' || t.status === 'completed').length, color: 'text-blue-600', bg: 'bg-blue-50' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -256,8 +256,8 @@ function VolunteerDashboard() {
           {activeTab === 'accepted' && (
             <motion.div key="accepted" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
               <div className="space-y-4">
-                {(tasks || []).filter(t => t.status === 'claimed' || t.status === 'delivered').length > 0 ? (
-                  (tasks || []).filter(t => t.status === 'claimed' || t.status === 'delivered').map(task => (
+                {(tasks || []).filter(t => t.status === 'claimed').length > 0 ? (
+                  (tasks || []).filter(t => t.status === 'claimed').map(task => (
                     <div key={task._id} className="bg-gradient-to-br from-yellow-50 to-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-wrap md:flex-nowrap items-center justify-between gap-8">
                       <div className="flex items-center gap-6 flex-1">
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner ${task.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
@@ -286,15 +286,9 @@ function VolunteerDashboard() {
                       </div>
                       
                       <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                        {task.status === 'claimed' ? (
-                          <button onClick={() => markAsDelivered(task._id)} className="w-full sm:w-auto px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
-                             <Truck size={18} /> Mark Delivered
-                          </button>
-                        ) : (
-                          <button onClick={() => completeTask(task._id)} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
-                            <CheckCircle size={18} /> Mission Completed
-                          </button>
-                        )}
+                        <button onClick={() => markAsDelivered(task._id)} className="w-full sm:w-auto px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+                           <Truck size={18} /> Mark Delivered
+                        </button>
                         
                         <button 
                           onClick={() => openChat(task.donorId?._id || task.donorId, task.donorId?.name || "Donor", task.donorId?.profileImage)} 
@@ -325,8 +319,8 @@ function VolunteerDashboard() {
             <motion.div key="completed" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-8 space-y-6">
-                  {(tasks || []).filter(t => t.status === 'completed').length > 0 ? (
-                    (tasks || []).filter(t => t.status === 'completed').map(task => (
+                  {(tasks || []).filter(t => t.status === 'delivered' || t.status === 'completed').length > 0 ? (
+                    (tasks || []).filter(t => t.status === 'delivered' || t.status === 'completed').map(task => (
                       <div key={task._id} className="flex items-center justify-between p-6 hover:bg-green-50/30 rounded-3xl transition-all group border border-transparent hover:border-green-100">
                         <div className="flex items-center gap-6">
                           <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm">
@@ -337,9 +331,16 @@ function VolunteerDashboard() {
                             <p className="text-sm text-gray-500 flex items-center gap-1.5"><MapPin size={12} /> {task.location}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs font-black text-gray-300 uppercase tracking-widest mb-1">Delivered On</p>
-                          <p className="text-sm font-bold text-gray-500">{new Date(task.updatedAt).toLocaleDateString()}</p>
+                        <div className="flex items-center gap-4 text-right">
+                          {task.status === 'delivered' && (
+                            <button onClick={() => completeTask(task._id)} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                              <CheckCircle size={16} /> Complete Mission
+                            </button>
+                          )}
+                          <div>
+                            <p className="text-xs font-black text-gray-300 uppercase tracking-widest mb-1">{task.status === 'delivered' ? 'Pending' : 'Completed'}</p>
+                            <p className="text-sm font-bold text-gray-500">{new Date(task.updatedAt).toLocaleDateString()}</p>
+                          </div>
                         </div>
                       </div>
                     ))

@@ -1,6 +1,9 @@
 
 import Donation from '../models/DonationModel.js';
 import User from '../models/userModel.js';
+import redis from '../utils/redis.js';
+
+const CACHE_TTL = 60; // seconds
 
 // Helper to send notifications via socket
 const sendNotification = (req, targetRoom, data) => {
@@ -38,6 +41,9 @@ export const createDonation = async (req, res) => {
 
     await newDonation.save();
 
+    // Invalidate donations cache since new donation was added
+    if (redis) await redis.del('donations:all', 'donations:available', 'admin:stats');
+
     // NOTIFY ALL VOLUNTEERS
     sendNotification(req, 'volunteers', {
       type: 'info',
@@ -56,9 +62,22 @@ export const createDonation = async (req, res) => {
 // Get all donations
 export const getDonations = async (req, res) => {
   try {
+    const cacheKey = 'donations:all';
+
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        console.log('[Cache] HIT donations:all');
+        return res.status(200).json(JSON.parse(cached));
+      }
+    }
+
     const donations = await Donation.find()
       .populate('donorId', 'name email profileImage')
       .populate('claimedBy', 'name email profileImage');
+
+    if (redis) await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(donations));
+
     res.status(200).json(donations);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching donations', error: error.message });
@@ -87,11 +106,16 @@ export const claimDonation = async (req, res) => {
       .populate('donorId', 'name email profileImage');
 
     if (!donation) return res.status(404).json({ message: 'Donation not found.' });
-    if (donation.status !== 'available') return res.status(400).json({ message: 'Already claimed.' });
+    if (donation.status !== 'available') return res.status(400).json({ message: 'This donation has already been claimed.' });
 
     donation.claimedBy = req.user.id;
     donation.status = 'claimed';
     await donation.save();
+
+    // Invalidate cache immediately after claim
+    if (redis) {
+      try { await redis.del('donations:all', 'donations:available'); } catch (_) {}
+    }
 
     const updatedDonation = await Donation.findById(donation._id)
       .populate('claimedBy', 'name email profileImage')
@@ -153,11 +177,13 @@ export const completeDonation = async (req, res) => {
     donation.status = 'completed';
     await donation.save();
 
-    // NOTIFY BOTH (optional)
-    const msg = `The donation of ${donation.foodName} is now officially completed. Great job everyone!`;
-    sendNotification(req, donation.donorId._id.toString(), { type: 'success', title: '✅ Donation Completed', message: msg, senderName: 'System' });
+    // NOTIFY BOTH
+    const donorMsg = `Your donation of ${donation.foodName} has been successfully completed. Thank you for your generosity!`;
+    sendNotification(req, donation.donorId._id.toString(), { type: 'success', title: '✅ Donation Completed', message: donorMsg, senderName: 'System' });
+    
     if (donation.claimedBy) {
-      sendNotification(req, donation.claimedBy._id.toString(), { type: 'success', title: '✅ Task Completed', message: msg, senderName: 'System' });
+      const volunteerMsg = `You have successfully completed the delivery of ${donation.foodName}. Thank you for your amazing effort!`;
+      sendNotification(req, donation.claimedBy._id.toString(), { type: 'success', title: '✅ Task Completed', message: volunteerMsg, senderName: 'System' });
     }
 
     res.status(200).json({ message: 'Completed.', donation });
@@ -179,8 +205,21 @@ export const getVolunteerDonations = async (req, res) => {
 
 export const getAvailableDonations = async (req, res) => {
   try {
+    const cacheKey = 'donations:available';
+
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        console.log('[Cache] HIT donations:available');
+        return res.json(JSON.parse(cached));
+      }
+    }
+
     const donations = await Donation.find({ status: "available" })
       .populate("donorId", "name email phone profileImage");
+
+    if (redis) await redis.setex(cacheKey, 10, JSON.stringify(donations));
+
     res.json(donations);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -189,6 +228,16 @@ export const getAvailableDonations = async (req, res) => {
 
 export const getLeaderboard = async (req, res) => {
   try {
+    const cacheKey = 'donations:leaderboard';
+
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        console.log('[Cache] HIT donations:leaderboard');
+        return res.status(200).json(JSON.parse(cached));
+      }
+    }
+
     const leaderboard = await Donation.aggregate([
       { $group: { _id: "$donorId", donationCount: { $sum: 1 } } },
       { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "donorDetails" } },
@@ -204,6 +253,9 @@ export const getLeaderboard = async (req, res) => {
         }
       }
     ]);
+
+    if (redis) await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(leaderboard));
+
     res.status(200).json(leaderboard);
   } catch (error) {
     res.status(500).json({ message: 'Error', error: error.message });

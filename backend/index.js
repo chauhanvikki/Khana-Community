@@ -1,6 +1,8 @@
 // /backend/index.js
-import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import http from "http";
@@ -21,8 +23,6 @@ import adminRoutes from "./routes/adminRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
@@ -183,12 +183,13 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Test email route
+// Test email route - use ?role=volunteer to test volunteer email
 app.get("/api/test-email", async (req, res) => {
   try {
+    const role = req.query.role || 'donor';
     const { sendThankYou } = await import('./utils/email.js');
-    await sendThankYou('singhvikki870@gmail.com', 'Test User');
-    res.json({ success: true, message: 'Test email sent!' });
+    await sendThankYou('singhvikki870@gmail.com', 'Test User', role);
+    res.json({ success: true, message: `Test ${role} welcome email sent!` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

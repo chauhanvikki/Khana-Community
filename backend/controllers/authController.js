@@ -5,7 +5,14 @@ import { OAuth2Client } from "google-auth-library";
 import OTPModel from "../models/otpModel.js";
 import { sendOTP, sendThankYou } from "../utils/email.js";
 
-const client = new OAuth2Client();
+// Lazy-init: create client only when needed, so dotenv has loaded by then
+let client;
+function getGoogleClient() {
+  if (!client) {
+    client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  }
+  return client;
+}
 
 async function signup(req, res) {
   try {
@@ -34,6 +41,11 @@ async function signup(req, res) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new userModel({ name, email, password: hashedPassword, role });
     await user.save();
+
+    // Send welcome email (non-blocking - don't fail signup if email fails)
+    sendThankYou(email, name, role).catch(err => 
+      console.error('Welcome email failed:', err.message)
+    );
 
     res.status(201).json({ message: "Signup successful" });
   } catch (err) {
@@ -134,7 +146,8 @@ async function googleLogin(req, res) {
 
     let payload;
     try {
-      const ticket = await client.verifyIdToken({
+      const googleClient = getGoogleClient();
+      const ticket = await googleClient.verifyIdToken({
         idToken: token,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
@@ -172,7 +185,7 @@ async function googleLogin(req, res) {
       );
 
       // Send welcome email (non-blocking)
-      sendThankYou(existingUser.email, existingUser.name).catch(err => 
+      sendThankYou(existingUser.email, existingUser.name, existingUser.role).catch(err => 
         console.error('Welcome email failed:', err.message)
       );
 
@@ -262,7 +275,7 @@ async function verifyGoogleOTP(req, res) {
     );
 
     // Send welcome email (non-blocking - don't fail login if email fails)
-    sendThankYou(user.email, user.name).catch(err => 
+    sendThankYou(user.email, user.name, user.role).catch(err => 
       console.error('Welcome email failed:', err.message)
     );
 

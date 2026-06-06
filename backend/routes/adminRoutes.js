@@ -4,12 +4,23 @@ import admin from '../Middlewares/adminMiddleware.js';
 import UserModel from '../models/userModel.js';
 import Donation from '../models/DonationModel.js';
 import Message from '../models/Message.js';
+import redis from '../utils/redis.js';
 
 const router = express.Router();
 
 // Get Admin Dashboard Stats
 router.get('/stats', auth, admin, async (req, res) => {
   try {
+    const cacheKey = 'admin:stats';
+
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        console.log('[Cache] HIT admin:stats');
+        return res.json(JSON.parse(cached));
+      }
+    }
+
     const totalDonors = await UserModel.countDocuments({ role: 'donor' });
     const totalVolunteers = await UserModel.countDocuments({ role: 'volunteer' });
     const totalDonations = await Donation.countDocuments();
@@ -30,7 +41,7 @@ router.get('/stats', auth, admin, async (req, res) => {
       { $sort: { "_id": 1 } }
     ]);
 
-    res.json({
+    const result = {
       summary: {
         totalDonors,
         totalVolunteers,
@@ -39,7 +50,11 @@ router.get('/stats', auth, admin, async (req, res) => {
         inProgressDonations
       },
       donationStats
-    });
+    };
+
+    if (redis) await redis.setex(cacheKey, 60, JSON.stringify(result));
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching admin stats' });
   }
@@ -48,13 +63,24 @@ router.get('/stats', auth, admin, async (req, res) => {
 // Get All Donors
 router.get('/donors', auth, admin, async (req, res) => {
   try {
+    const cacheKey = 'admin:donors';
+
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        console.log('[Cache] HIT admin:donors');
+        return res.json(JSON.parse(cached));
+      }
+    }
+
     const donors = await UserModel.find({ role: 'donor' }).select('-password').lean();
     
-    // Add counts manually for safety
     const donorsWithStats = await Promise.all(donors.map(async (d) => {
       const count = await Donation.countDocuments({ donorId: d._id });
       return { ...d, donationCount: count };
     }));
+
+    if (redis) await redis.setex(cacheKey, 60, JSON.stringify(donorsWithStats));
 
     res.json(donorsWithStats);
   } catch (error) {
@@ -65,6 +91,16 @@ router.get('/donors', auth, admin, async (req, res) => {
 // Get All Volunteers
 router.get('/volunteers', auth, admin, async (req, res) => {
   try {
+    const cacheKey = 'admin:volunteers';
+
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        console.log('[Cache] HIT admin:volunteers');
+        return res.json(JSON.parse(cached));
+      }
+    }
+
     const volunteers = await UserModel.find({ role: 'volunteer' }).select('-password').lean();
     
     const volunteersWithStats = await Promise.all(volunteers.map(async (v) => {
@@ -72,6 +108,8 @@ router.get('/volunteers', auth, admin, async (req, res) => {
       const completed = await Donation.countDocuments({ claimedBy: v._id, status: 'completed' });
       return { ...v, totalTasks: total, completedTasks: completed };
     }));
+
+    if (redis) await redis.setex(cacheKey, 60, JSON.stringify(volunteersWithStats));
 
     res.json(volunteersWithStats);
   } catch (error) {
