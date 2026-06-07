@@ -36,15 +36,12 @@ const DonationMap = ({
     if (mode !== 'tracking') return;
     const origin = volunteerLiveCoords || volunteerCoords;
     const destination = donorCoords;
-    if (!origin || !destination || !window.google) return;
+    if (!origin || !destination) return;
+    if (!window.google?.maps?.DirectionsService) return;
 
     const service = new window.google.maps.DirectionsService();
     service.route(
-      {
-        origin,
-        destination,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
+      { origin, destination, travelMode: window.google.maps.TravelMode.DRIVING },
       (result, status) => {
         if (status === 'OK') setDirections(result);
         else setDirections(null);

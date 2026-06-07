@@ -180,7 +180,7 @@ const DonorDashboard = () => {
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 border">
                 {user?.profileImage
-                  ? <img src={`${API_BASE_URL}${user.profileImage}`} alt={user?.name} className="w-12 h-12 object-cover" />
+                  ? <img src={user.profileImage.startsWith('http') ? user.profileImage : `${API_BASE_URL}${user.profileImage}`} alt={user?.name} className="w-12 h-12 object-cover" />
                   : <div className="w-full h-full flex items-center justify-center text-gray-400">👤</div>
                 }
               </div>

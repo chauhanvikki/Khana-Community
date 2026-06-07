@@ -151,7 +151,7 @@ function VolunteerDashboard() {
             <div className="flex items-center gap-6">
               <div className="w-14 h-14 bg-gradient-to-br from-[#4CAF50] to-[#66BB6A] rounded-2xl shadow-lg flex items-center justify-center text-white overflow-hidden border-2 border-white">
                 {volunteer?.profileImage
-                  ? <img src={`${API_BASE_URL}${volunteer.profileImage}`} alt="" className="w-full h-full object-cover" />
+                  ? <img src={volunteer.profileImage.startsWith('http') ? volunteer.profileImage : `${API_BASE_URL}${volunteer.profileImage}`} alt="" className="w-full h-full object-cover" />
                   : <User size={28} />
                 }
               </div>

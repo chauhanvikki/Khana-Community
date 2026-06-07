@@ -230,45 +230,13 @@ async function googleLogin(req, res) {
     const newOTP = new OTPModel({ email, otp });
     await newOTP.save();
 
-  //   try {
-  //     await sendOTP(email, otp);
-  //     console.log(`OTP sent to ${email} for Google signup`);
-  //   } catch (mailErr) {
-  //     console.error("OTP email sending failed:", mailErr);
-  //     // return res.status(500).json({ message: "Failed to send verification email. Please try again." });
-  //     return res.status(200).json({
-  //   message: "Email service failed",
-  //   debug: true
-  // });
-  console.log("Before sendOTP");
-
-// for testing cmmnt --try {
-//   await sendOTP(email, otp);
-//   console.log("After sendOTP");
-//   console.log(`OTP sent to ${email} for Google signup`);
-// } catch (mailErr) {
-//   console.error("OTP email sending failed:", mailErr);
-
-//   return res.status(200).json({
-//     message: "Email service failed",
-//     debug: true
-//   });
-// }
-    // }
-
-    console.log("Skipping email for testing");
-
-return res.status(200).json({
-  requireOTP: true,
-  email,
-  googleData: {
-    googleId,
-    name,
-    role: role || "donor",
-    picture: picture || ""
-  }
-});
-
+    try {
+      await sendOTP(email, otp);
+      console.log(`OTP sent to ${email} for Google signup`);
+    } catch (mailErr) {
+      console.error("OTP email sending failed:", mailErr);
+      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+    }
 
     // Return requireOTP flag so frontend shows OTP modal
     res.status(200).json({
