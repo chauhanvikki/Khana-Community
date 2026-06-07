@@ -11,6 +11,13 @@ function getTransporter() {
         pass: process.env.EMAIL_PASS,
       },
     });
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error("SMTP Verify Error:", error);
+      } else {
+        console.log("SMTP Server Ready");
+      }
+    });
     console.log('Email transporter created for:', process.env.EMAIL_USER);
   }
   return transporter;

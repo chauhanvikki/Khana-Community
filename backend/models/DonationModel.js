@@ -21,9 +21,23 @@ const donationSchema = new mongoose.Schema({
   location: { type: String, required: true },
   imageUrl: { type: String, default: '' },
 
+  // GeoJSON point — [longitude, latitude] order (MongoDB standard)
+  coordinates: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: {
+      type: [Number],
+      default: undefined,
+      validate: {
+        validator: (v) => !v || v.length === 0 || v.length === 2,
+        message: 'Coordinates must have exactly 2 values [lng, lat]'
+      }
+    },
+  },
+
   status: {
     type: String,
-    enum: ['available', 'claimed', 'delivered', 'completed'],
+    enum: ['available', 'accepted', 'en_route', 'arrived', 'picked_up', 'completed',
+           'claimed', 'delivered'], // keep old values for backward compat
     default: 'available',
   },
   claimedBy: {
@@ -31,7 +45,13 @@ const donationSchema = new mongoose.Schema({
     ref: 'User',
     default: null,
   },
+  acceptedAt: Date,
+  pickedUpAt: Date,
+  completedAt: Date,
 }, { timestamps: true });
+
+// 2dsphere index — required for $near geospatial queries
+donationSchema.index({ coordinates: '2dsphere' });
 
 /**
  * Donation model instance
@@ -46,5 +66,5 @@ const donationSchema = new mongoose.Schema({
  * @property {string} status - Current status (available, claimed, delivered, completed)
  * @property {ObjectId} claimedBy - Reference to volunteer who claimed the donation
  */
-const Donation = mongoose.model('Donation', donationSchema);
+const Donation = mongoose.models.Donation || mongoose.model('Donation', donationSchema);
 export default Donation;

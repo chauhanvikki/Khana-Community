@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import jwt from "jsonwebtoken";
 import { Server as SocketIOServer } from "socket.io";
 import dns from "dns";
+import redis from "./utils/redis.js";
 
 // Set DNS servers to resolve MongoDB SRV records if local DNS fails
 dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
@@ -138,6 +139,31 @@ io.on("connection", (socket) => {
 
   socket.on("stop_typing", ({ to }) => {
     if (to) io.to(to.toString()).emit("stop_typing", { from: userId });
+  });
+
+  // ── Tracking room management ────────────────────────────────────────────
+  socket.on("join:tracking", ({ donationId }) => {
+    if (!donationId) return;
+    socket.join(`donation:${donationId}`);
+    console.log(`[Tracking] ${userId} joined room donation:${donationId}`);
+  });
+
+  socket.on("leave:tracking", ({ donationId }) => {
+    if (!donationId) return;
+    socket.leave(`donation:${donationId}`);
+    console.log(`[Tracking] ${userId} left room donation:${donationId}`);
+  });
+
+  // Volunteer broadcasts their live GPS to the donation room
+  socket.on("volunteer:location", async ({ donationId, lat, lng }) => {
+    if (!donationId || lat == null || lng == null) return;
+    const payload = { lat, lng, volunteerId: userId, ts: Date.now() };
+    // Store in Redis with 30s TTL — auto-expires if volunteer goes offline
+    if (redis) {
+      try { await redis.setex(`tracking:${donationId}`, 30, JSON.stringify(payload)); } catch (_) {}
+    }
+    // Broadcast to everyone in the donation room (donor sees the movement)
+    io.to(`donation:${donationId}`).emit("location:update", { lat, lng, ts: payload.ts });
   });
 
   socket.on("disconnect", () => {

@@ -235,7 +235,11 @@ async function googleLogin(req, res) {
       console.log(`OTP sent to ${email} for Google signup`);
     } catch (mailErr) {
       console.error("OTP email sending failed:", mailErr);
-      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+      // return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+      return res.status(200).json({
+    message: "Email service failed",
+    debug: true
+  });
     }
 
     // Return requireOTP flag so frontend shows OTP modal
