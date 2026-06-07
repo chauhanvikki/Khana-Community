@@ -234,8 +234,8 @@ async function googleLogin(req, res) {
       await sendOTP(email, otp);
       console.log(`OTP sent to ${email} for Google signup`);
     } catch (mailErr) {
-      console.error("OTP email sending failed:", mailErr);
-      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+      console.error("OTP email sending failed:", mailErr.message);
+      // Don't fail the request if email fails — still return requireOTP
     }
 
     // Return requireOTP flag so frontend shows OTP modal
@@ -333,8 +333,8 @@ async function resendOTP(req, res) {
     try {
       await sendOTP(email, otp);
     } catch (mailErr) {
-      console.error("Mail sending failed:", mailErr);
-      return res.status(500).json({ message: "Failed to send OTP email" });
+      console.error("Mail sending failed:", mailErr.message);
+      return res.status(500).json({ message: "Failed to send OTP email. Please check your email service configuration." });
     }
 
     res.status(200).json({ message: "New OTP sent to your email" });
