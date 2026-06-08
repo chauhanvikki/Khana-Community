@@ -295,10 +295,12 @@ async function verifyGoogleOTP(req, res) {
       { expiresIn: "24h" }
     );
 
-    // Send welcome email (non-blocking - don't fail login if email fails)
-    sendThankYou(user.email, user.name, user.role).catch(err => 
-      console.error('Welcome email failed:', err.message)
-    );
+    // Send welcome email
+    try {
+      await sendThankYou(user.email, user.name, user.role);
+    } catch (err) {
+      console.error('Welcome email failed:', err.message, '| code:', err.code);
+    }
 
     res.status(200).json({
       message: "Authentication successful",
