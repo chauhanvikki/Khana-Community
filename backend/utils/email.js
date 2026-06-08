@@ -1,8 +1,8 @@
-import * as Brevo from '@getbrevo/brevo';
+import SibApiV3Sdk from '@getbrevo/brevo';
 
 function getApi() {
-  const api = new Brevo.TransactionalEmailsApi();
-  api.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+  const api = new SibApiV3Sdk.TransactionalEmailsApi();
+  api.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
   return api;
 }
 
