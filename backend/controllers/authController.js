@@ -210,11 +210,6 @@ async function googleLogin(req, res) {
         { expiresIn: "24h" }
       );
 
-      // Send welcome email (non-blocking)
-      sendThankYou(existingUser.email, existingUser.name, existingUser.role).catch(err => 
-        console.error('Welcome email failed:', err.message)
-      );
-
       return res.status(200).json({
         message: "Google login successful",
         token: jwtToken,
