@@ -1,27 +1,19 @@
-import nodemailer from 'nodemailer';
+import * as Brevo from '@getbrevo/brevo';
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.BREVO_LOGIN,
-    pass: process.env.BREVO_SMTP_KEY,
-  },
-  connectionTimeout: 10000,
-  socketTimeout: 10000,
-});
-
-function getFrom() {
-  return 'Khana Community <singhvikki870@gmail.com>';
+function getApi() {
+  const api = new Brevo.TransactionalEmailsApi();
+  api.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+  return api;
 }
 
+const FROM = { email: 'singhvikki870@gmail.com', name: 'Khana Community' };
+
 export const sendOTP = async (email, otp) => {
-  const info = await transporter.sendMail({
-    from: getFrom(),
-    to: email,
+  const result = await getApi().sendTransacEmail({
+    sender: FROM,
+    to: [{ email }],
     subject: 'Your Login OTP - Khana Community',
-    html: `
+    htmlContent: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #eee;border-radius:10px;">
         <h2 style="color:#FF9933;text-align:center;">Khana Community</h2>
         <p>Hello,</p>
@@ -34,8 +26,8 @@ export const sendOTP = async (email, otp) => {
       </div>
     `,
   });
-  console.log('OTP email sent to', email, '| id:', info.messageId);
-  return info;
+  console.log('OTP email sent to', email, '| id:', result.body?.messageId);
+  return result;
 };
 
 export const sendThankYou = async (email, name, role = 'donor') => {
@@ -66,11 +58,11 @@ export const sendThankYou = async (email, name, role = 'donor') => {
        <li>🚗 <strong>Accept & deliver food</strong> to those in need</li>
        <li>🏆 <strong>Track your deliveries</strong> and see your impact grow</li>`;
 
-  const info = await transporter.sendMail({
-    from: getFrom(),
-    to: email,
+  const result = await getApi().sendTransacEmail({
+    sender: FROM,
+    to: [{ email }],
     subject,
-    html: `
+    htmlContent: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
         <div style="background:linear-gradient(135deg,${gradientColors});padding:40px 30px;text-align:center;">
           <div style="font-size:3rem;margin-bottom:10px;">${heroIcon}</div>
@@ -97,16 +89,16 @@ export const sendThankYou = async (email, name, role = 'donor') => {
       </div>
     `,
   });
-  console.log(`Welcome email (${role}) sent to`, email, '| id:', info.messageId);
-  return info;
+  console.log(`Welcome email (${role}) sent to`, email, '| id:', result.body?.messageId);
+  return result;
 };
 
 export const sendContactEmail = async ({ name, email, subject, message }) => {
-  const info = await transporter.sendMail({
-    from: getFrom(),
-    to: 'singhvikki870@gmail.com',
+  const result = await getApi().sendTransacEmail({
+    sender: FROM,
+    to: [{ email: 'singhvikki870@gmail.com' }],
     subject: `Contact Form: ${subject}`,
-    html: `
+    htmlContent: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #ddd;border-radius:10px;overflow:hidden;">
         <div style="background:#FF9933;color:white;padding:20px;text-align:center;">
           <h2 style="margin:0;">New Inquiry</h2>
@@ -123,6 +115,6 @@ export const sendContactEmail = async ({ name, email, subject, message }) => {
       </div>
     `,
   });
-  console.log('Contact email sent | id:', info.messageId);
-  return info;
+  console.log('Contact email sent | id:', result.body?.messageId);
+  return result;
 };
