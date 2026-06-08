@@ -1,16 +1,21 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-function getClient() {
-  return new Resend(process.env.RESEND_API_KEY);
-}
+const transporter = nodemailer.createTransport({
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_LOGIN,
+    pass: process.env.BREVO_SMTP_KEY,
+  },
+});
 
-// Use Resend's shared test domain OR your verified domain
 function getFrom() {
-  return process.env.EMAIL_FROM || 'Khana Community <onboarding@resend.dev>';
+  return 'Khana Community <singhvikki870@gmail.com>';
 }
 
 export const sendOTP = async (email, otp) => {
-  const { data, error } = await getClient().emails.send({
+  const info = await transporter.sendMail({
     from: getFrom(),
     to: email,
     subject: 'Your Login OTP - Khana Community',
@@ -27,12 +32,8 @@ export const sendOTP = async (email, otp) => {
       </div>
     `,
   });
-  if (error) {
-    console.error('Resend OTP error:', error);
-    throw Object.assign(new Error(error.message), { code: error.name });
-  }
-  console.log('OTP email sent to', email, '| id:', data.id);
-  return data;
+  console.log('OTP email sent to', email, '| id:', info.messageId);
+  return info;
 };
 
 export const sendThankYou = async (email, name, role = 'donor') => {
@@ -63,7 +64,7 @@ export const sendThankYou = async (email, name, role = 'donor') => {
        <li>🚗 <strong>Accept & deliver food</strong> to those in need</li>
        <li>🏆 <strong>Track your deliveries</strong> and see your impact grow</li>`;
 
-  const { data, error } = await getClient().emails.send({
+  const info = await transporter.sendMail({
     from: getFrom(),
     to: email,
     subject,
@@ -94,16 +95,12 @@ export const sendThankYou = async (email, name, role = 'donor') => {
       </div>
     `,
   });
-  if (error) {
-    console.error('Resend welcome email error:', error);
-    throw Object.assign(new Error(error.message), { code: error.name });
-  }
-  console.log(`Welcome email (${role}) sent to`, email, '| id:', data.id);
-  return data;
+  console.log(`Welcome email (${role}) sent to`, email, '| id:', info.messageId);
+  return info;
 };
 
 export const sendContactEmail = async ({ name, email, subject, message }) => {
-  const { data, error } = await getClient().emails.send({
+  const info = await transporter.sendMail({
     from: getFrom(),
     to: 'singhvikki870@gmail.com',
     subject: `Contact Form: ${subject}`,
@@ -124,10 +121,6 @@ export const sendContactEmail = async ({ name, email, subject, message }) => {
       </div>
     `,
   });
-  if (error) {
-    console.error('Resend contact email error:', error);
-    throw Object.assign(new Error(error.message), { code: error.name });
-  }
-  console.log('Contact email sent | id:', data.id);
-  return data;
+  console.log('Contact email sent | id:', info.messageId);
+  return info;
 };
