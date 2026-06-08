@@ -6,8 +6,8 @@ import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Git
 
 const Footer = () => {
   const socialLinks = [
-    { icon: Facebook, href: '#', label: 'Facebook' },
-    { icon: Twitter, href: '#', label: 'Twitter' },
+    { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=100063849399804', label: 'Facebook' },
+    { icon: Twitter, href: 'https://x.com/chauhan_vikki__', label: 'Twitter' },
     { icon: Instagram, href: 'https://www.instagram.com/chauhan_vikki__/', label: 'Instagram' },
     { icon: Linkedin, href: 'https://www.linkedin.com/in/vishvendra-singh-/', label: 'LinkedIn' },
     { icon: Github, href: 'https://github.com/chauhanvikki/', label: 'GitHub' }
