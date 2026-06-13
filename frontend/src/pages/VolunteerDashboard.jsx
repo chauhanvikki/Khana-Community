@@ -43,12 +43,26 @@ function VolunteerDashboard() {
   const [activeTab, setActiveTab] = useState('available');
   const [showMap, setShowMap] = useState(true);
   const [trackingTaskId, setTrackingTaskId] = useState(null); // active tracking donation
+  const [routeInfo, setRouteInfo] = useState(null);
 
   const { unreadCounts, markAsRead, socket } = useNotifications();
   const { coords: volunteerCoords, error: geoError, loading: geoLoading, request: requestLocation } = useGeolocation();
 
+  // Continuous geolocation for active mission — keeps GPS running
+  const { coords: liveCoords, request: startLiveTracking, stopWatching: stopLiveTracking } = useGeolocation(true);
+
   // Volunteer broadcasts their location for the active task
   const { volunteerLocation: _unused } = useTracking(socket, trackingTaskId, 'volunteer');
+
+  // Auto-start/stop continuous tracking when mission becomes active
+  useEffect(() => {
+    if (trackingTaskId) {
+      startLiveTracking();
+    } else {
+      stopLiveTracking();
+      setRouteInfo(null);
+    }
+  }, [trackingTaskId]);
 
   const getHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
 
@@ -355,25 +369,38 @@ function VolunteerDashboard() {
                       </div>
 
                       {/* Inline tracking map for this task */}
-                      {ACTIVE_STATUSES.includes(task.status) && volunteerCoords && taskDonorCoords && (
+                      {ACTIVE_STATUSES.includes(task.status) && (volunteerCoords || liveCoords) && taskDonorCoords && (
                         <div className="mb-4">
                           <Suspense fallback={<div className="h-44 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 text-sm">Loading map…</div>}>
                             <DonationMap
                               mode="tracking"
                               volunteerCoords={volunteerCoords}
+                              volunteerLiveCoords={liveCoords}
                               donorCoords={taskDonorCoords}
                               centerOn="volunteer"
+                              onRouteInfo={setRouteInfo}
                             />
                           </Suspense>
-                          <p className="text-xs text-gray-400 mt-1.5">🔵 You &nbsp;|&nbsp; 🟠 Donor pickup point</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex gap-4 text-xs text-gray-500">
+                              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />You</span>
+                              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-orange-500 inline-block" />Donor pickup</span>
+                              <span className="flex items-center gap-1.5"><span className="w-6 h-0.5 bg-blue-500 inline-block rounded" />Route</span>
+                            </div>
+                            {routeInfo && (
+                              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                                🚗 {routeInfo.durationMin} min · {routeInfo.distanceKm} km
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
-                      {ACTIVE_STATUSES.includes(task.status) && !volunteerCoords && (
-                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
-                          📍 Share your location to see the route to donor
+                      {ACTIVE_STATUSES.includes(task.status) && !volunteerCoords && !liveCoords && (
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700 flex items-center gap-2">
+                          📍 Share your location to see the live route to donor
                         </div>
                       )}
-                      {ACTIVE_STATUSES.includes(task.status) && volunteerCoords && !taskDonorCoords && (
+                      {ACTIVE_STATUSES.includes(task.status) && (volunteerCoords || liveCoords) && !taskDonorCoords && (
                         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700">
                           ⚠️ Donor hasn't set a map location — use the address above
                         </div>

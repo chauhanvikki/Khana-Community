@@ -208,15 +208,23 @@ const DonorDashboard = () => {
         {trackingDonation && (
           <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  🚗 Live Tracking — {trackingDonation.foodName}
-                </h2>
-                <p className="text-blue-100 text-sm mt-0.5">
-                  {volunteerLocation ? 'Volunteer location is updating in real-time' : 'Waiting for volunteer to share location…'}
-                </p>
+              <div className="flex items-center gap-3">
+                {volunteerLocation && (
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-400"></span>
+                  </span>
+                )}
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    🚗 Live Tracking — {trackingDonation.foodName}
+                  </h2>
+                  <p className="text-blue-100 text-sm mt-0.5">
+                    {volunteerLocation ? 'Volunteer location is updating in real-time' : 'Waiting for volunteer to share location…'}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setTrackingDonation(null)} className="text-blue-200 hover:text-white text-sm font-semibold">
+              <button onClick={() => setTrackingDonation(null)} className="text-blue-200 hover:text-white text-sm font-semibold px-3 py-1 rounded-lg hover:bg-white/10 transition-all">
                 Close Map
               </button>
             </div>
@@ -233,6 +241,7 @@ const DonorDashboard = () => {
               <div className="flex gap-4 mt-3 text-xs text-gray-500">
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-orange-500 inline-block" />Your location</span>
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />Volunteer (live)</span>
+                <span className="flex items-center gap-1.5"><span className="w-6 h-0.5 bg-blue-500 inline-block rounded" />Route</span>
               </div>
             </div>
           </div>
